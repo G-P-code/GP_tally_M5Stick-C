@@ -39,7 +39,7 @@ void m5_begin() {
 void m5_configInitialScreen() {
 #if defined(STICK_C_PLUS2)
   StickCP2.Display.setCursor(0, 0);
-  StickCP2.Display.setFreeFont(FSS9);
+  StickCP2.Display.setFont(FSS9);
 #elif defined(STICK_C_PLUS)
   M5.Lcd.setCursor(0, 20);
   M5.Lcd.setFreeFont(FSS9);
@@ -57,7 +57,7 @@ void m5_configInitialScreen() {
 void m5_configSettingsScreen() {
 #if defined(STICK_C_PLUS2)
   StickCP2.Display.setCursor(0, 0);
-  StickCP2.Display.setFreeFont(FSS9);
+  StickCP2.Display.setFont(FSS9);
 #elif defined(STICK_C_PLUS)
   M5.Lcd.setCursor(0, 20);
   M5.Lcd.setFreeFont(FSS9);
@@ -206,7 +206,7 @@ uint8_t m5_BtnA_pressedFor(uint32_t ms) {
 void configureDisplayToEvaluateMode() {
 #if defined(STICK_C_PLUS2)
   StickCP2.Display.setCursor(4, 50);
-  StickCP2.Display.setFreeFont(FSS24);
+  StickCP2.Display.setFont(FSS24);
 #elif defined(STICK_C_PLUS)
   M5.Lcd.setCursor(4, 82);
   M5.Lcd.setFreeFont(FSS24);
@@ -220,7 +220,7 @@ void configureDisplayToEvaluateMode() {
 void configureDisplayToCheckReset() {
 #if defined(STICK_C_PLUS2)
   StickCP2.Display.setCursor(0, 40);
-  StickCP2.Display.setFreeFont(FSS9);
+  StickCP2.Display.setFont(FSS9);
 #elif defined(STICK_C_PLUS)
   M5.Lcd.setCursor(0, 40);
   M5.Lcd.setFreeFont(FSS9);
@@ -258,4 +258,14 @@ int lcdBrightness() {
   norm = constrain(norm, 0.0f, 1.0f);
   int boost = (int)(LCD_BOOST * (1.0f - norm));
   return constrain(currentBrightness + boost, START_BRIGHTNESS, MAX_BRIGHTNESS);
+}
+
+// Returns display brightness for StickC-Plus2 (0–255 scale).
+// Maps internal brightness range (START_BRIGHTNESS–MAX_BRIGHTNESS) to 20–255
+// so the screen is never completely dark at minimum setting.
+int lcdBrightnessPlus2() {
+  float norm = (float)(currentBrightness - START_BRIGHTNESS) /
+               (float)(MAX_BRIGHTNESS    - START_BRIGHTNESS);
+  norm = constrain(norm, 0.0f, 1.0f);
+  return (int)(20.0f + (255.0f - 20.0f) * norm);
 }

@@ -77,10 +77,16 @@ void socket_event(socketIOmessageType_t type, uint8_t *payload, size_t length) {
 
       logger("Got event '" + eventType + "'", "info-quiet");
 
-      if (eventType == "bus_options")  BusOptions = JSON.parse(eventContent);
-      if (eventType == "reassign")     socket_Reassign(eventContent);
-      if (eventType == "flash")        socket_Flash();
-      if (eventType == "messaging")    socket_Messaging(eventContent);
+      if (eventType == "bus_options") {
+        BusOptions = JSON.parse(eventContent);
+        busOptionsReady = true;
+        // Process any device_states that arrived before bus_options
+        if (DeviceStates.length() > 0) processTallyData();
+      }
+
+      if (eventType == "reassign")  socket_Reassign(eventContent);
+      if (eventType == "flash")     socket_Flash();
+      if (eventType == "messaging") socket_Messaging(eventContent);
 
       if (eventType == "deviceId") {
         DeviceId = eventContent.substring(1, eventContent.length() - 1);
@@ -95,7 +101,7 @@ void socket_event(socketIOmessageType_t type, uint8_t *payload, size_t length) {
 
       if (eventType == "device_states") {
         DeviceStates = JSON.parse(eventContent);
-        processTallyData();
+        if (busOptionsReady) processTallyData();
       }
       break;
 
@@ -154,6 +160,19 @@ void socket_Reassign(String payload) {
   preferences.begin(PREF_NAMESPACE, false);
   preferences.putString(PREF_DEVICE_ID, newDeviceId);
   preferences.end();
+
+  // Clear tally state immediately — new device state not yet known.
+  // This happens only once at reassign, not on every SetDeviceName() call.
+  actualType     = "";
+  actualColor    = "";
+  actualPriority = 0;
+  prevType       = "__invalidated__";
+  prevLedType    = "__invalidated__";
+#if TALLY_EXTRA_OUTPUT
+  externalLed();
+  prevLedType = actualType;
+#endif
+
   SetDeviceName();
 
   reassignActive = true;
@@ -184,6 +203,8 @@ void processTallyData() {
   int    highestPrioVal = 0;
 
   for (int i = 0; i < DeviceStates.length(); i++) {
+    // Only process states that belong to our assigned device
+    if (JSON.stringify(DeviceStates[i]["deviceId"]) != "\"" + DeviceId + "\"") continue;
     if (DeviceStates[i]["sources"].length() > 0) {
       typeChanged = true;
       String busType  = getBusTypeById(JSON.stringify(DeviceStates[i]["busId"]));
@@ -249,6 +270,11 @@ void SetDeviceName() {
   preferences.begin(PREF_NAMESPACE, false);
   preferences.putString(PREF_DEVICE_NAME, DeviceName);
   preferences.end();
-  prevType = "__invalidated__";
   logger("DeviceName: " + DeviceName, "info");
+  // Invalidate display so the new name is repainted with the current tally state.
+  // Do NOT clear actualType/Color here — this function is called both on reassign
+  // AND on normal 'devices' event refresh. Clearing state on a normal refresh
+  // would wipe a valid tally signal. State is cleared in socket_Reassign() instead.
+  prevType = "__invalidated__";
+  evaluateMode();
 }

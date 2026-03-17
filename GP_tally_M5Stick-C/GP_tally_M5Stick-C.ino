@@ -3,7 +3,7 @@
 // by Joseph Adams                                                                                                //
 // ************************************************************************************************************** //
 
-String version = "4.5.1";
+String version = "4.5.2";
 
 //
 // Automatic support for board selection with Arduino IDE
@@ -67,7 +67,14 @@ String version = "4.5.1";
 #include <WiFiManager.h>
 #include <ArduinoOTA.h>
 #include <Preferences.h>
-#include "Free_Fonts.h"
+#if !defined(STICK_C_PLUS2)
+  #include "Free_Fonts.h"
+#else
+  // M5GFX (used by Plus2) includes FreeSans fonts via M5StickCPlus2.h.
+  // Define the same aliases used elsewhere in the code.
+  #define FSS9  &fonts::FreeSans9pt7b
+  #define FSS24 &fonts::FreeSans24pt7b
+#endif
 #include "config.h"
 
 // ============================================================================
@@ -134,6 +141,7 @@ String LastMessage = "";
 
 bool taConnected          = false;
 bool everConnected        = false;  // set true on first successful CONNECT
+bool busOptionsReady      = false;  // set true once bus_options received from TA
 bool userRequestedSettings = false;   // true = user opened settings manually
 
 // ============================================================================
@@ -346,7 +354,11 @@ void setup() {
     currentBrightness = preferences.getInt(PREF_BRIGHTNESS, START_BRIGHTNESS);
   preferences.end();
 
+#if defined(STICK_C_PLUS2)
+  M5.Imu.begin();
+#else
   M5.IMU.Init();
+#endif
   m5_setRotation(1);
   m5_fillScreen(TFT_BLACK);
   m5_configInitialScreen();
@@ -413,7 +425,11 @@ void loop() {
   // IMU — read at reduced frequency, act on rotation change only
   unsigned long now = millis();
   if (now - lastImuRead >= IMU_READ_INTERVAL) {
+#if defined(STICK_C_PLUS2)
+    M5.Imu.getAccel(&accX, &accY, &accZ);
+#else
     M5.IMU.getAccelData(&accX, &accY, &accZ);
+#endif
     lastImuRead = now;
 
     int newRotation = currentRotation;
