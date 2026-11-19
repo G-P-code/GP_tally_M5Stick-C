@@ -13,6 +13,12 @@ All notable changes to GP Tally M5StickC are documented here.
 - **Source layout** — sketch tabs (`*.ino`) converted to regular C++ (`src/*.cpp`). Shared globals and prototypes moved to `include/globals.h`, board detection to `include/board.h`. No functional changes.
 - **Docs** — README and REQUIREMENTS updated for PlatformIO. Library versions in docs now match the versions actually used (WebSockets 2.7.2, not 2.3.4).
 
+### Added
+- **Close the setup AP from the device** — M5 button long press (or **Exit** in the portal). Closed without a network, the AP stays closed until the network has been back once.
+
+### Changed
+- **Setup save always restarts** — saving the TallyArbiter settings restarts the device even if the values did not change.
+
 ### Fixed
 - **Boot no longer hangs in the setup portal** — with the saved Wi-Fi unavailable, `autoConnect()` without a portal timeout waited in the AP for ever and never retried the network. Boot is now non-blocking: the station keeps retrying, the setup AP opens after 20 s and closes by itself when the network answers.
 - **Wi-Fi events never fired** — `WiFiEvent()` compared core 3.x `ARDUINO_EVENT_*` ids with ESP-IDF `IP_EVENT_*` / `WIFI_EVENT_*` values (different numbers), so a lost network was never noticed. Station state now comes from the interface's event bits; drops are logged with their reason.
@@ -25,6 +31,8 @@ All notable changes to GP Tally M5StickC are documented here.
 - **Firmware update page** — the portal menu now has **Update** (the README already described it).
 - **TX power** — switching between 8.5 and 19.5 dBm has 10 dB hysteresis instead of flipping at −50 dBm.
 - **Brightness** — the cycle stops at 100 instead of 101.
+- **"Erase WiFi config" showed "An error occurred" and erased nothing** — on core 3.x the driver refuses to erase before the STA interface has started. A replacement `/erase` handler (and the M5 5 s / G33 3 s resets) now start the STA, wait for it, then erase.
+- **Web portal could not be reopened after "Exit"** — WiFiManager stopped it but the `portalRunning` flag stayed set; the flag is now read from the library.
 - **CHANGELOG** — duplicate 4.5.3 section merged.
 
 ---

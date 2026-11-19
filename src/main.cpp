@@ -280,7 +280,7 @@ void loop() {
   // WiFi reset: hold btnM5 for 5 s
   if (m5_BtnA_pressedFor(5000)) {
     logger("resetSettings()", "info");
-    wm.resetSettings();
+    eraseWifiConfig();
     ESP.restart();
   }
 
@@ -298,6 +298,9 @@ void loop() {
 #if TALLY_EXTRA_OUTPUT
   if (btnM5.isDoubleClick()) toggleLeds();
 #endif
+
+  // Close the setup AP: long press btnM5 (hold 5 s still erases WiFi)
+  if (btnM5.isLongClick() && setupApActive()) closeSetupAp();
 
   // Brightness cycle: single click btnAction
   if (btnAction.isSingleClick()) updateBrightness();

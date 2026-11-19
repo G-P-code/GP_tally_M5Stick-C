@@ -192,6 +192,8 @@ void networkTick();
 void startWebPortal();
 void stopWebPortal();
 void openSetupApManual();
+void closeSetupAp();
+bool eraseWifiConfig();
 bool setupApActive();
 bool stationUp();
 void saveParamCallback();

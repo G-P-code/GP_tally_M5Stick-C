@@ -37,6 +37,7 @@ static bool          apManual     = false;   // opened with G33 (has its own tim
 static bool          noCreds      = false;   // nothing saved: AP at once, nothing to retry
 static bool          retryPaused  = false;   // phone on the setup AP
 static bool          otaStarted   = false;
+static bool          apSuppressed = false;   // AP closed by hand without network: no auto-reopen
 static unsigned long staDownSince = 0;
 static unsigned long lastWifiKick = 0;
 
@@ -88,7 +89,42 @@ void stopWebPortal() {
   portalRunning = false;
 }
 
-void openSetupApManual() { openSetupAp(true); }
+void openSetupApManual() { apSuppressed = false; openSetupAp(true); }
+
+// M5 long press / portal "Exit". Without a network the AP is not opened again
+// by itself until the network has come back once (G33 still opens it).
+void closeSetupAp() {
+  if (!wm.getConfigPortalActive()) return;
+  logger("Setup AP closed by user", "info");
+  wm.stopConfigPortal();
+  // apUp edge is handled in networkTick()
+}
+
+// WiFi credentials erase that works on core 3.x: the driver refuses to erase
+// until the STA interface has actually started, and WiFiManager's own /erase
+// asks before that happens ("An error occurred", nothing erased).
+bool eraseWifiConfig() {
+  WiFi.enableSTA(true);
+  const unsigned long t = millis();
+  while (!WiFi.STA.started() && millis() - t < 2000) delay(10);
+  const bool ok = WiFi.eraseAP();
+  logger(String("WiFi config erase ") + (ok ? "OK" : "FAILED"), ok ? "info" : "error");
+  return ok;
+}
+
+// Registered before WiFiManager's own routes, so this /erase wins.
+static void handleErase() {
+  const bool ok = eraseWifiConfig();
+  wm.server->send(200, "text/html",
+    String("<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width'>"
+           "<title>Erase WiFi</title></head><body style='font-family:sans-serif'><h3>") +
+    (ok ? "WiFi config erased. Restarting..." : "Erasing WiFi config failed.") +
+    "</h3></body></html>");
+  if (ok) {
+    delay(1000);
+    ESP.restart();
+  }
+}
 
 bool setupApActive()  { return apUp; }
 bool stationUp()      { return staUp; }
@@ -123,6 +159,7 @@ void connectToNetwork() {
   wm.setAPStaticIPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
   wm.setConnectTimeout(15);              // after a WiFi save in the portal
   wm.setConfigPortalBlocking(false);     // boot and loop never block
+  wm.setWebServerCallback([]() { wm.server->on("/erase", handleErase); });
 
   staDownSince = millis();
   if (wm.getWiFiIsSaved()) {
@@ -158,12 +195,18 @@ void networkTick() {
     if (staUp) lastLogged = 0;
   }
 
+  // Web portal state — WiFiManager's own "Exit" stops it behind our back
+  portalRunning = wm.getWebPortalActive();
+
   // Setup AP state — read from the library
   const bool apNow = wm.getConfigPortalActive();
   if (apNow != apUp) {
     apUp = apNow;
     logger(String("Setup AP ") + (apNow ? "up" : "closed"), "info");
     if (!apNow) {
+      // Closed while there is no network (M5 long press, "Exit", timeout):
+      // do not pop it straight back up.
+      if (!staUp) apSuppressed = true;
       apManual = false;
       if (currentScreen == 1) startWebPortal();
     }
@@ -177,6 +220,7 @@ void networkTick() {
     networkConnected = up;
     if (up) {
       noCreds = false;
+      apSuppressed = false;
       logger("Network connected: " + WiFi.SSID() + " " + WiFi.localIP().toString(), "info");
       if (!otaStarted) { ArduinoOTA.begin(); otaStarted = true; }
       // TallyArbiter: retry at once instead of waiting out the backoff
@@ -217,7 +261,7 @@ void networkTick() {
       WiFi.begin();                             // also re-enables STA if the portal switched it off
     }
     // No network for a while: offer the setup AP (station keeps trying).
-    if (!apUp && (noCreds || now - staDownSince > WIFI_AP_AFTER_MS)) openSetupAp(false);
+    if (!apUp && !apSuppressed && (noCreds || now - staDownSince > WIFI_AP_AFTER_MS)) openSetupAp(false);
   } else {
     lastWifiKick = 0;
   }
@@ -257,12 +301,6 @@ void saveParamCallback() {
   if (port < 1 || port > 65535) {
     logger("Invalid TA port '" + str_taPort + "', keeping " + String(tallyarbiter_port), "error");
     str_taPort = tallyarbiter_port;
-  }
-
-  if (str_taHost == tallyarbiter_host && str_taPort == tallyarbiter_port) {
-    logger("TA params unchanged", "info");
-    refreshParamValues();
-    return;
   }
 
   logger("New TA host: " + str_taHost + ":" + str_taPort, "info");

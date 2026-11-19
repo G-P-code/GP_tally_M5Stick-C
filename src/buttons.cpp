@@ -198,7 +198,7 @@ void resetTick() {
     if (pinLow && millis() - resetPressedMs >= RESET_HOLD_MS) {
       m5_println("Erasing....");
       logger("Erasing Config, restarting", "info");
-      wm.resetSettings();
+      eraseWifiConfig();
       ESP.restart();
     } else if (!pinLow) {
       resetHolding = false;
