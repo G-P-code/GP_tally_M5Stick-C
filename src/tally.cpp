@@ -1,12 +1,12 @@
 // ============================================================================
 // tally.cpp — TallyArbiter Socket.IO communication and tally data processing
 //
-// Socket.IO v2 implemented directly over WebSocketsClient (links2004/WebSockets).
-// JSON parsing uses ArduinoJson v7.
+// Socket.IO v4 (Engine.IO v4, EIO=4) implemented directly over WebSocketsClient
+// (links2004/WebSockets). JSON parsing uses ArduinoJson v7.
 //
-// Socket.IO v2 wire protocol:
+// Socket.IO v4 wire protocol:
 //   Engine.IO packet types (first char):
-//     '0' — open (server sends session info)
+//     '0' — open (server sends session info incl. pingInterval / pingTimeout)
 //     '2' — ping  (server → client, we reply '3')
 //     '3' — pong
 //     '4' — message (contains Socket.IO packet)
@@ -21,10 +21,42 @@
 // Socket.IO connection
 // ============================================================================
 
+// Liveness: the server pings every pingInterval; no packet for
+// pingInterval + pingTimeout means the link is dead even if TCP looks open.
+static unsigned long lastServerMsgMs  = 0;
+static unsigned long taPingIntervalMs = TA_PING_INTERVAL_MS;
+static unsigned long taPingTimeoutMs  = TA_PING_TIMEOUT_MS;
+
+// Called once from setup(). WebSocketsClient reconnects by itself from then on
+// (calling begin() again on every retry restarted the connection mid-handshake).
 void connectToServer() {
   logger("Connecting to Tally Arbiter: " + String(tallyarbiter_host) + ":" + String(tallyarbiter_port), "info");
   socket.onEvent(wsEvent);
+  socket.setReconnectInterval(reconnectDelay);
   socket.begin(tallyarbiter_host, atol(tallyarbiter_port), "/socket.io/?EIO=4&transport=websocket");
+}
+
+// Called every loop() pass.
+void taTick() {
+  const unsigned long now = millis();
+
+  // Silent link (WiFi gone, server unplugged): drop it so the tally clears
+  // instead of showing a stale state.
+  if (taConnected && now - lastServerMsgMs > taPingIntervalMs + taPingTimeoutMs + TA_PING_MARGIN_MS) {
+    logger("No ping from Tally Arbiter for " + String((now - lastServerMsgMs) / 1000) + " s, disconnecting", "error");
+    socket.disconnect();
+    if (taConnected) onSocketDisconnect();   // in case the library raised no event
+    return;
+  }
+
+  // Backoff: each connect attempt can block up to 5 s while the server is away,
+  // so widen the library's retry interval the longer TA stays unreachable.
+  if (taConnected || !networkConnected) return;
+  if (now - lastReconnectAttempt < (unsigned long)reconnectDelay) return;
+  lastReconnectAttempt = now;
+  reconnectDelay = min(reconnectDelay * 2, RECONNECT_MAX_DELAY);
+  socket.setReconnectInterval(reconnectDelay);
+  logger("Tally Arbiter not reachable, next retry in " + String(reconnectDelay) + " ms", "info-quiet");
 }
 
 // Emit a Socket.IO event with optional JSON payload string
@@ -59,6 +91,17 @@ void wsEvent(WStype_t type, uint8_t *payload, size_t length) {
       if (msg.length() == 0) break;
 
       char eioType = msg[0];
+      lastServerMsgMs = millis();
+
+      if (eioType == '0') {
+        // Engine.IO open — take the server's ping timing
+        JsonDocument open;
+        if (!deserializeJson(open, msg.c_str() + 1)) {
+          taPingIntervalMs = open["pingInterval"] | (unsigned long)TA_PING_INTERVAL_MS;
+          taPingTimeoutMs  = open["pingTimeout"]  | (unsigned long)TA_PING_TIMEOUT_MS;
+        }
+        break;
+      }
 
       if (eioType == '2') {
         // Engine.IO ping — reply with pong
@@ -109,9 +152,12 @@ void onSocketConnect() {
     DeviceId.c_str(), listenerDeviceName.c_str());
   ws_emit("listenerclient_connect", deviceObj);
 
-  taConnected    = true;
-  everConnected  = true;
-  reconnectDelay = RECONNECT_BASE_DELAY;
+  taConnected     = true;
+  everConnected   = true;
+  lastServerMsgMs = millis();
+  reconnectDelay  = RECONNECT_BASE_DELAY;
+  lastReconnectAttempt = millis();
+  socket.setReconnectInterval(reconnectDelay);
 
   if (currentScreen == 1 && !userRequestedSettings) {
     switchToTally();
@@ -121,6 +167,8 @@ void onSocketConnect() {
 }
 
 void onSocketDisconnect() {
+  if (taConnected) logger("Disconnected from Tally Arbiter server.", "info");
+  lastReconnectAttempt = millis();
   taConnected     = false;
   busOptionsReady = false;
   actualType      = "";

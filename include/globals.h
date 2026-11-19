@@ -182,16 +182,24 @@ void onSocketEvent(String raw);
 void socket_Flash();
 void socket_Reassign(String oldDeviceId, String newDeviceId);
 void processTallyData();
+void taTick();
 void getBusInfo(const String &busId, String &outType, String &outColor, int &outPriority);
 void SetDeviceName();
 
 // network.cpp
 void connectToNetwork();
+void networkTick();
+void startWebPortal();
+void stopWebPortal();
+void openSetupApManual();
+void closeSetupAp();
+bool eraseWifiConfig();
+bool setupApActive();
+bool stationUp();
 void saveParamCallback();
 void saveConfigCallback();
 String getParam(String name);
-void WiFiEvent(WiFiEvent_t event);
-void handleReconnection();
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info);
 void checkPendingRestart();
 void optimizeWiFiPower();
 

@@ -5,7 +5,7 @@
 
 #include "globals.h"
 
-String version = "4.5.3";
+String version = "4.5.4";
 
 // ============================================================================
 // USER CONFIG — change before flashing
@@ -204,15 +204,9 @@ void setup() {
   logger("Tally Arbiter " + listenerDeviceHW + " Listener Client booting.", "info");
   logger("Listener device name: " + listenerDeviceName, "info");
 
+  // Non-blocking: the station keeps retrying in networkTick(), the setup AP
+  // opens by itself when there is no network.
   connectToNetwork();
-  unsigned long networkWaitStart = millis();
-  while (!networkConnected) {
-    delay(200);
-    if (millis() - networkWaitStart > 180000) {
-      logger("Network wait timeout. Continuing without network.", "error");
-      break;
-    }
-  }
 
   ArduinoOTA.setHostname(listenerDeviceName.c_str());
   ArduinoOTA.setPassword("tallyarbiter");
@@ -233,7 +227,7 @@ void setup() {
       else if (error == OTA_RECEIVE_ERROR) logger("Receive Failed", "error");
       else if (error == OTA_END_ERROR)     logger("End Failed",     "error");
     });
-  ArduinoOTA.begin();
+  // ArduinoOTA.begin() runs in networkTick() once the network is up.
 
 #if TALLY_EXTRA_OUTPUT
   set_dutyCycle();
@@ -250,7 +244,7 @@ void setup() {
 // loop()
 // ============================================================================
 void loop() {
-  if (portalRunning) wm.process();
+  networkTick();
 
   ArduinoOTA.handle();
   socket.loop();
@@ -286,7 +280,7 @@ void loop() {
   // WiFi reset: hold btnM5 for 5 s
   if (m5_BtnA_pressedFor(5000)) {
     logger("resetSettings()", "info");
-    wm.resetSettings();
+    eraseWifiConfig();
     ESP.restart();
   }
 
@@ -305,6 +299,9 @@ void loop() {
   if (btnM5.isDoubleClick()) toggleLeds();
 #endif
 
+  // Close the setup AP: long press btnM5 (hold 5 s still erases WiFi)
+  if (btnM5.isLongClick() && setupApActive()) closeSetupAp();
+
   // Brightness cycle: single click btnAction
   if (btnAction.isSingleClick()) updateBrightness();
 
@@ -322,8 +319,8 @@ void loop() {
 
   // Maintenance
   checkPendingRestart();
-  handleReconnection();
+  taTick();
   optimizeWiFiPower();
   updateBatteryInfo();
-  setPerformanceMode(animationActive() || portalRunning || !taConnected);
+  setPerformanceMode(animationActive() || portalRunning || setupApActive() || !taConnected);
 }

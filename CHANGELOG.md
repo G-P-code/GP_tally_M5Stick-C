@@ -4,7 +4,7 @@ All notable changes to GP Tally M5StickC are documented here.
 
 ---
 
-## [Unreleased]
+## [4.5.4] — in development
 
 ### Changed
 - **Build system migrated from Arduino IDE to PlatformIO** — `platformio.ini` with environments `m5stickc`, `m5stickc-plus`, `m5stickc-plus2` and matching `-ota` variants. ESP32 core, partition scheme and all library versions are pinned, so builds are reproducible without manual library installation.
@@ -13,21 +13,27 @@ All notable changes to GP Tally M5StickC are documented here.
 - **Source layout** — sketch tabs (`*.ino`) converted to regular C++ (`src/*.cpp`). Shared globals and prototypes moved to `include/globals.h`, board detection to `include/board.h`. No functional changes.
 - **Docs** — README and REQUIREMENTS updated for PlatformIO. Library versions in docs now match the versions actually used (WebSockets 2.7.2, not 2.3.4).
 
----
-
-## [4.5.3] — 2026-03-18
+### Added
+- **Close the setup AP from the device** — M5 button long press (or **Exit** in the portal). Closed without a network, the AP stays closed until the network has been back once.
 
 ### Changed
-- **Socket.IO library replaced** — `timum-viw/SocketIoClient` (abandoned since 2021) replaced with a direct Socket.IO v2 implementation over `links2004/WebSockets`. Eliminates an unmaintained dependency and gives full control over the Engine.IO/Socket.IO handshake.
-- **JSON library replaced** — `Arduino_JSON` replaced with `ArduinoJson` v7 (Benoît Blanchon). Faster parsing, lower RAM usage, type-safe API, actively maintained.
-- **Cleaner event dispatch** — single large `socket_event()` switch replaced with `wsEvent()` (WebSocket/Engine.IO layer) and `onSocketEvent()` (Socket.IO application layer).
-- **Bus lookup consolidated** — three separate `getBusTypeById()` / `getBusColorById()` / `getBusPriorityById()` functions replaced with a single `getBusInfo()` that iterates the bus list once.
+- **Setup save always restarts** — saving the TallyArbiter settings restarts the device even if the values did not change.
 
-### Removed
-- `timum-viw/SocketIoClient` dependency
-- `Arduino_JSON` dependency
-- `strip_quot()` helper (no longer needed — ArduinoJson returns clean strings)
-- `socket_Connected()`, `socket_Messaging()` (logic folded into `onSocketConnect()` / `onSocketEvent()`)
+### Fixed
+- **Boot no longer hangs in the setup portal** — with the saved Wi-Fi unavailable, `autoConnect()` without a portal timeout waited in the AP for ever and never retried the network. Boot is now non-blocking: the station keeps retrying, the setup AP opens after 20 s and closes by itself when the network answers.
+- **Wi-Fi events never fired** — `WiFiEvent()` compared core 3.x `ARDUINO_EVENT_*` ids with ESP-IDF `IP_EVENT_*` / `WIFI_EVENT_*` values (different numbers), so a lost network was never noticed. Station state now comes from the interface's event bits; drops are logged with their reason.
+- **Wi-Fi reconnect** — a drop the core's auto-reconnect does not recover within 5 s is retried every 10 s. Joins the strongest AP when several share the SSID.
+- **Stale tally on a dead link** — the Socket.IO ping was answered but its absence never checked, so a silently dropped link (Wi-Fi gone, server unplugged) kept the last tally colour on screen. No packet for pingInterval + pingTimeout now drops the connection and clears the tally.
+- **TallyArbiter reconnect** — `socket.begin()` was called again on every retry on top of the library's own 500 ms reconnect, so the backoff never applied. The library now reconnects alone, with its interval doubling up to 30 s while the server is away (each attempt can block the loop up to 5 s).
+- **G33 setup portal no longer blocks** — the tally kept running only after the 120 s portal closed; it is now non-blocking.
+- **Web portal and setup AP on port 80** — never started together any more.
+- **Portal form** — a reload or GET of `/paramsave` no longer saves empty values; a blank field keeps the stored value; the port is validated; the form shows the stored values after a save; no restart when nothing changed.
+- **Firmware update page** — the portal menu now has **Update** (the README already described it).
+- **TX power** — switching between 8.5 and 19.5 dBm has 10 dB hysteresis instead of flipping at −50 dBm.
+- **Brightness** — the cycle stops at 100 instead of 101.
+- **"Erase WiFi config" showed "An error occurred" and erased nothing** — on core 3.x the driver refuses to erase before the STA interface has started. A replacement `/erase` handler (and the M5 5 s / G33 3 s resets) now start the STA, wait for it, then erase.
+- **Web portal could not be reopened after "Exit"** — WiFiManager stopped it but the `portalRunning` flag stayed set; the flag is now read from the library.
+- **CHANGELOG** — duplicate 4.5.3 section merged.
 
 ---
 
