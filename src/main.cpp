@@ -3,78 +3,9 @@
 // by Joseph Adams                                                                                                //
 // ************************************************************************************************************** //
 
+#include "globals.h"
+
 String version = "4.5.3";
-
-//
-// Automatic support for board selection with Arduino IDE
-//
-// Board defines used by Arduino IDE as preprocessor flags when selecting boards
-// Boards > M5Stack Arduino > M5StickC / M5StickCPlus / M5StickCPlus2
-//   M5StickC       ARDUINO_m5stack_stickc
-//   M5StickC-Plus  ARDUINO_m5stack_stickc_plus
-//   M5StickC-Plus2 ARDUINO_m5stack_stickc_plus2
-//
-// Libraries used:
-//   WebSockets 2.3.4, ArduinoJson v7,
-//   WifiManager (tzapu), MultiButton, ArduinoOTA
-//
-#pragma GCC optimize ("-O2")
-
-#if defined(ARDUINO_M5STACK_STICKC)
-  #define STICK_C
-#endif
-#if defined(ARDUINO_M5STACK_STICKC_PLUS)
-  #define STICK_C_PLUS
-#endif
-#if defined(ARDUINO_M5STACK_STICKC_PLUS2)
-  #define STICK_C_PLUS2
-#endif
-
-// Manual override — uncomment exactly one if IDE auto-detection is unavailable:
-//#define STICK_C
-//#define STICK_C_PLUS
-//#define STICK_C_PLUS2
-
-// Default to M5StickC Plus if nothing is defined
-#if !defined(STICK_C) && !defined(STICK_C_PLUS) && !defined(STICK_C_PLUS2)
-  #define STICK_C_PLUS
-#endif
-
-// Guard against multiple defines
-#if defined(STICK_C_PLUS2)
-  #include <M5StickCPlus2.h>
-  #if defined(STICK_C) || defined(STICK_C_PLUS)
-    #error "Multiple m5stick board types defined"
-  #endif
-#endif
-#if defined(STICK_C_PLUS)
-  #include <M5StickCPlus.h>
-  #if defined(STICK_C) || defined(STICK_C_PLUS2)
-    #error "Multiple m5stick board types defined"
-  #endif
-#endif
-#if defined(STICK_C)
-  #include <M5StickC.h>
-  #if defined(STICK_C_PLUS) || defined(STICK_C_PLUS2)
-    #error "Multiple m5stick board types defined"
-  #endif
-#endif
-
-#include <WebSocketsClient.h>
-#include <ArduinoJson.h>
-#include <PinButton.h>
-#include <WiFiManager.h>
-#include <ArduinoOTA.h>
-#include <Preferences.h>
-#if !defined(STICK_C_PLUS2)
-  #include "Free_Fonts.h"
-#else
-  // M5GFX (used by Plus2) includes FreeSans fonts via M5StickCPlus2.h.
-  // Define the same aliases used elsewhere in the code.
-  #define FSS9  &fonts::FreeSans9pt7b
-  #define FSS24 &fonts::FreeSans24pt7b
-#endif
-#include "config.h"
 
 // ============================================================================
 // USER CONFIG — change before flashing
@@ -84,9 +15,6 @@ IPAddress apIP(192, 168, 6, 1);    // captive portal IP
 char tallyarbiter_host[40] = "0.0.0.0";
 char tallyarbiter_port[6]  = "4455";
 // ============================================================================
-
-// External LED output enable
-#define TALLY_EXTRA_OUTPUT true
 
 // ============================================================================
 // Board-specific device name strings
@@ -106,15 +34,7 @@ char tallyarbiter_port[6]  = "4455";
 // External LED pin assignments & PWM config
 // ============================================================================
 #if TALLY_EXTRA_OUTPUT
-  #if defined(STICK_C_PLUS2)
-    const int led_program = 19;
-  #else
-    const int led_program = 0;
-  #endif
-  const int led_preview  = 26;
-  const int led_aux      = 25;
-  const int freq         = 5000;
-  const int resolution   = 8;
+  // Pin numbers and PWM config are constexpr in globals.h
   int dutyCycle          = 0;
 #endif
 
@@ -189,12 +109,7 @@ int           brightnessOsdOriginScreen = 0;
 // ============================================================================
 // Battery cache
 // ============================================================================
-struct BatteryInfo {
-  int           level      = 0;
-  bool          isCharging = false;  // current flowing into battery
-  bool          isCharged  = false;  // full and on charger (current == 0 but USB present)
-  unsigned long lastRead   = 0;
-} batteryCache;
+BatteryInfo batteryCache;   // struct defined in globals.h
 
 // ============================================================================
 // Reconnection
@@ -229,89 +144,6 @@ bool animationActive() {
 #endif
   return active;
 }
-
-// ============================================================================
-// Forward declarations
-// (Arduino IDE auto-generates these for the main .ino but not for other .ino
-//  files — listing them here ensures all files can call all functions.)
-// ============================================================================
-
-// screen.ino
-void paintSettingsScreen();
-void paintTallyScreen();
-void repaintCurrentScreen();
-void switchToSettings(bool byUser = false);
-void switchToTally();
-void showSettings();
-void showDeviceInfo();
-void evaluateMode();
-
-// buttons.ino
-void updateBrightness();
-void showBrightnessOsd();
-void brightnessTick();
-void ledSequentialCheck();
-void resetTick();
-
-// tally.ino
-void connectToServer();
-void wsEvent(WStype_t type, uint8_t *payload, size_t length);
-void onSocketConnect();
-void onSocketDisconnect();
-void onSocketEvent(String raw);
-void socket_Flash();
-void socket_Reassign(String oldDeviceId, String newDeviceId);
-void processTallyData();
-void getBusInfo(const String &busId, String &outType, String &outColor, int &outPriority);
-void SetDeviceName();
-
-// network.ino
-void connectToNetwork();
-void saveParamCallback();
-String getParam(String name);
-void WiFiEvent(WiFiEvent_t event);
-void handleReconnection();
-void checkPendingRestart();
-void optimizeWiFiPower();
-
-// leds.ino
-void externalLed();
-void toggleLeds();
-void set_dutyCycle();
-void flashTick();
-void reassignTick();
-#if TALLY_EXTRA_OUTPUT
-void ledCheckTick();
-#endif
-
-// power.ino
-void setPerformanceMode(bool high);
-void updateBatteryInfo();
-
-// m5hal.ino
-void logger(String strLog, String strType);
-void m5_begin();
-void m5_configInitialScreen();
-void m5_configSettingsScreen();
-void m5_setRotation(uint_fast8_t rotation);
-void m5_println();
-void m5_println(const String &s);
-void m5_println(const char c[]);
-void m5_print(const char str[]);
-void m5_setTextColor(uint16_t color);
-void m5_setTextColor(uint16_t fgcolor, uint16_t bgcolor);
-void m5_fillScreen(uint32_t color);
-void m5_fillRect(int x, int y, int w, int h, uint32_t color);
-void m5_drawRect(int x, int y, int w, int h, uint32_t color);
-uint16_t m5_color565(uint8_t r, uint8_t g, uint8_t b);
-uint8_t  m5_BtnA_pressedFor(uint32_t ms);
-int  m5_displayWidth();
-int  m5_displayHeight();
-int  lcdBrightness();
-int  lcdBrightnessPlus2();
-void configureDisplayToEvaluateMode();
-void configureDisplayToCheckReset();
-void ledCheckScreen(uint32_t bgColor, uint16_t textColor, String label, String pinNum, int stepNum, int totalSteps);
 
 // ============================================================================
 // setup()

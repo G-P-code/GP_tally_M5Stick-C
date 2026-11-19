@@ -1,53 +1,56 @@
 # Requirements
 
-## Arduino IDE
+## Toolchain
 
-Version 2.x recommended.
+[PlatformIO](https://platformio.org) — VS Code extension **PlatformIO IDE**, or PlatformIO Core (`pio`) 6.2.0+.
 
-**Tools > Board:** M5Stack Arduino > M5StickC / M5StickCPlus / M5StickCPlus2  
-**Tools > Partition Scheme:** Minimal SPIFFS (... MB App with OTA / ... SPIFFS)
+Everything else is declared in `platformio.ini` and installed automatically on the first build.
 
 ---
 
-## Board Support Packages
+## Platform
 
-Install via **Boards Manager** (Tools > Board > Boards Manager):
-
-| Package | Version |
+| Component | Version |
 |---|---|
-| esp32 by Espressif | 3.x |
-| M5Stack | latest |
+| Platform | [pioarduino/platform-espressif32](https://github.com/pioarduino/platform-espressif32) **55.03.313** |
+| Arduino-ESP32 core | **3.3.13** |
+| Partition scheme | `min_spiffs.csv` — Minimal SPIFFS (1.9 MB app with OTA) |
+
+The official `platformio/espressif32` platform only ships Arduino-ESP32 core 2.x; this firmware needs core 3.x, hence pioarduino.
 
 ---
 
 ## Libraries
 
-Install via **Library Manager** (Sketch > Include Library > Manage Libraries):
+| Library | Version | Used by |
+|---|---|---|
+| links2004/WebSockets | 2.7.2 | all |
+| bblanchon/ArduinoJson | 7.4.3 | all |
+| tzapu/WiFiManager | 2.0.17 | all |
+| poelstra/MultiButton | 1.3.0 | all |
+| m5stack/M5StickC | 0.3.0 (from GitHub) | `m5stickc` |
+| m5stack/M5StickCPlus | 0.1.1 | `m5stickc-plus` |
+| m5stack/M5StickCPlus2 | 1.0.2 (+ M5Unified / M5GFX) | `m5stickc-plus2` |
 
-| Library | Author | Version | Notes |
-|---|---|---|---|
-| M5StickC | M5Stack | latest | For M5StickC only |
-| M5StickC-Plus | M5Stack | latest | For M5StickC-Plus only |
-| M5StickC-Plus2 | M5Stack | latest | For M5StickC-Plus2 only |
-| WebSockets | Links2004 | **2.3.4** | Exact version required |
-| ArduinoJson | Benoît Blanchon | **7.x** | v6 not compatible |
-| WiFiManager | tzapu | latest | |
-| MultiButton | poelstra | latest | |
+Each environment pulls in only its own M5Stack library, so the `multiple definition of 'M5'` conflict from the Arduino IDE cannot happen.
 
-> **Note:** Only install the M5Stack library matching your hardware. Having multiple M5Stack libraries installed simultaneously causes a `multiple definition of 'M5'` linker error.
-
-> **Note:** `timum-viw/SocketIoClient` and `Arduino_JSON` are not used as of v4.5.3 and can be uninstalled from the Arduino Library Manager.
+M5StickC 0.3.0 is not published on the PlatformIO registry (the registry stops at 0.2.5, which does not compile on core 3.x), so it is fetched from the GitHub tag.
 
 ---
 
 ## OTA Updates
 
-Firmware can be updated over the air without Arduino IDE via the built-in web portal:
+Via the built-in web portal:
 
 1. Open the Settings screen on the device (M5 button single click)
 2. Navigate to the device IP address shown on screen from any browser on the same network
-3. Go to **Update** in the portal menu and upload a compiled `.bin` file
+3. Go to **Update** in the portal menu and upload `.pio/build/<env>/firmware.bin`
 
-OTA is also supported directly from Arduino IDE (Tools > Port > Network ports):
+Via PlatformIO:
+
+```sh
+pio run -e m5stickc-plus2-ota -t upload --upload-port <device-ip>
+```
+
 - Hostname: `m5StickC-plus-xxxxxx`
 - Password: `tallyarbiter`

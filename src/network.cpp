@@ -1,6 +1,8 @@
 // ============================================================================
-// network.ino — WiFi connection, WifiManager portal, reconnection, TX power
+// network.cpp — WiFi connection, WifiManager portal, reconnection, TX power
 // ============================================================================
+
+#include "globals.h"
 
 WiFiManagerParameter *custom_taServer;
 WiFiManagerParameter *custom_taPort;
