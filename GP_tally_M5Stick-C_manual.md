@@ -9,8 +9,10 @@
 1. Power on the device. It will create a Wi-Fi access point named **m5StickC-plus-xxxxxx** (last 6 characters are unique to your device).
 2. Connect to that network from your phone or computer (no password required).
 3. Open a browser and go to **192.168.6.1**.
-4. Enter your Wi-Fi network credentials and the **Tally Arbiter server IP address and port** (default port: 4455).
-5. Click Save. The device will restart and connect automatically.
+4. Open **Setup**, enter the **Tally Arbiter server IP address and port** (default port: 4455) and click Save. The device restarts and the access point comes back.
+5. Open **Configure WiFi**, choose your network, enter its password and click Save. The device connects automatically.
+
+If the saved Wi-Fi network is not available, the device keeps retrying it and opens the same access point after about 20 seconds. The access point closes by itself as soon as the network is back.
 
 ### Controls
 
@@ -21,7 +23,7 @@
 | **M5 button** — hold 5 s | Reset Wi-Fi settings and restart (forces setup portal) |
 | **Action button** — single click | Cycle display brightness |
 | **Action button** — long press | Run LED sequential check (Program → Preview → Aux → All) |
-| **Grove pin G33** — short press | Open configuration portal |
+| **Grove pin G33** — short press | Open the setup access point (closes after 2 min; tally keeps running) |
 | **Grove pin G33** — hold 3 s | Erase all settings and restart |
 
 ### Tally screen
@@ -68,8 +70,10 @@ The device supports OTA updates via PlatformIO (`-ota` environments) or the web 
 1. Ieslēdz ierīci. Tā izveidos Wi-Fi piekļuves punktu ar nosaukumu **m5StickC-plus-xxxxxx** (pēdējie 6 simboli ir unikāli katrai ierīcei).
 2. Pieslēdzies šim tīklam no telefona vai datora (parole nav nepieciešama).
 3. Atver pārlūkprogrammu un dodies uz **192.168.6.1**.
-4. Ievadi sava Wi-Fi tīkla datus un **Tally Arbiter servera IP adresi un portu** (noklusējuma ports: 4455).
-5. Nospied Saglabāt. Ierīce restartēsies un savienosies automātiski.
+4. Atver **Setup**, ievadi **Tally Arbiter servera IP adresi un portu** (noklusējuma ports: 4455) un nospied Save. Ierīce restartēsies, un piekļuves punkts parādīsies atkal.
+5. Atver **Configure WiFi**, izvēlies savu tīklu, ievadi paroli un nospied Save. Ierīce savienosies automātiski.
+
+Ja saglabātais Wi-Fi tīkls nav pieejams, ierīce turpina to meklēt un pēc ~20 sekundēm atver to pašu piekļuves punktu. Tiklīdz tīkls atkal ir pieejams, piekļuves punkts aizveras pats.
 
 ### Vadība
 
@@ -80,7 +84,7 @@ The device supports OTA updates via PlatformIO (`-ota` environments) or the web 
 | **M5 poga** — turēt 5 s | Atiestatīt Wi-Fi iestatījumus un restartēt (atver iestatīšanas portālu) |
 | **Action poga** — viens klikšķis | Mainīt ekrāna spilgtumu |
 | **Action poga** — garš spiediens | Palaist LED secīgo pārbaudi (Program → Preview → Aux → Visi) |
-| **Grove kontakts G33** — īss spiediens | Atvērt konfigurācijas portālu |
+| **Grove kontakts G33** — īss spiediens | Atvērt iestatīšanas piekļuves punktu (aizveras pēc 2 min; tally turpina strādāt) |
 | **Grove kontakts G33** — turēt 3 s | Dzēst visus iestatījumus un restartēt |
 
 ### Tally ekrāns

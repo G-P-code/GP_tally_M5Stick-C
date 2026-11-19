@@ -42,9 +42,17 @@
 // ============================================================================
 // Network / reconnection
 // ============================================================================
-#define RECONNECT_BASE_DELAY   1000
+#define RECONNECT_BASE_DELAY   1000  // TallyArbiter reconnect interval, doubles while TA is away
 #define RECONNECT_MAX_DELAY   30000
+#define TA_PING_INTERVAL_MS   25000  // Socket.IO v4 defaults, replaced by the server's values
+#define TA_PING_TIMEOUT_MS    20000  //   from the Engine.IO open packet
+#define TA_PING_MARGIN_MS      5000  // extra slack before a silent link counts as dead
 #define WIFI_POWER_SAVE_RSSI    -50  // dBm — use low TX power above this RSSI
+#define WIFI_POWER_HYSTERESIS    10  // dB — back to full power below RSSI - this
+#define WIFI_RETRY_GRACE_MS    5000  // leave a drop to the core's auto-reconnect this long
+#define WIFI_RETRY_MS         10000  // then kick the station this often
+#define WIFI_AP_AFTER_MS      20000  // no network this long -> open the setup AP
+#define SETUP_AP_MANUAL_TIMEOUT_S 120  // setup AP opened with G33 closes after this (s)
 
 // ============================================================================
 // NVS preference keys  (all stored under PREF_NAMESPACE)

@@ -30,7 +30,8 @@ void updateBrightness() {
   if (currentBrightness >= MAX_BRIGHTNESS) {
     currentBrightness = START_BRIGHTNESS;
   } else {
-    currentBrightness += 10;
+    // 11, 21 … 91, then 100 (not 101) before wrapping back to START_BRIGHTNESS
+    currentBrightness = min(currentBrightness + 10, MAX_BRIGHTNESS);
   }
 
   preferences.begin(PREF_NAMESPACE, false);
@@ -203,12 +204,9 @@ void resetTick() {
       resetHolding = false;
       m5_println("Starting Portal...");
       logger("Starting config portal", "info");
-      wm.setConfigPortalTimeout(120);
-      if (!wm.startConfigPortal(listenerDeviceName.c_str())) {
-        logger("failed to connect or hit timeout", "error");
-      } else {
-        logger("connected...yeey :)", "info");
-      }
+      // Non-blocking: tally keeps running; the AP closes by itself after
+      // SETUP_AP_MANUAL_TIMEOUT_S (or when the user saves WiFi in it).
+      openSetupApManual();
       prevType = "__invalidated__";
       switch (currentScreen) {
         case 0: showDeviceInfo(); break;

@@ -18,8 +18,21 @@ void paintSettingsScreen() {
   m5_fillScreen(TFT_BLACK);
   m5_configSettingsScreen();
   m5_setTextColor(WHITE, BLACK);
-  m5_println("SSID: " + String(WiFi.SSID()));
-  m5_println(WiFi.localIP().toString());
+  if (setupApActive()) {
+    // Setup AP is up: show how to reach it
+    m5_setTextColor(YELLOW, BLACK);
+    m5_println("Setup AP: " + listenerDeviceName);
+    m5_println("http://" + apIP.toString());
+    m5_setTextColor(WHITE, BLACK);
+  } else if (stationUp()) {
+    m5_println("SSID: " + String(WiFi.SSID()));
+    m5_println(WiFi.localIP().toString());
+  } else {
+    m5_println("SSID: " + String(WiFi.SSID()));
+    m5_setTextColor(RED_COLOR);
+    m5_println("No WiFi - retrying...");
+    m5_setTextColor(WHITE, BLACK);
+  }
   m5_println("Tally Arbiter Server:");
   m5_println(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
 
@@ -71,10 +84,7 @@ void switchToSettings(bool byUser) {
   currentScreen = 1;
   if (byUser) userRequestedSettings = true;
   logger("switchToSettings(byUser=" + String(byUser) + ")", "info-quiet");
-  if (!portalRunning) {
-    wm.startWebPortal();
-    portalRunning = true;
-  }
+  startWebPortal();      // no-op while the setup AP owns port 80
   paintSettingsScreen();
 }
 
@@ -83,10 +93,7 @@ void switchToTally() {
   // Do NOT clear userRequestedSettings here — it must only be cleared when
   // the user explicitly presses btnM5 to leave settings.
   logger("switchToTally()", "info-quiet");
-  if (portalRunning) {
-    wm.stopWebPortal();
-    portalRunning = false;
-  }
+  stopWebPortal();
   paintTallyScreen();
 }
 

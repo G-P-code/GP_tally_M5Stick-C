@@ -60,8 +60,10 @@ In VS Code: open the repository folder, pick the environment in the status bar (
 1. Power on the device. It will create a Wi-Fi access point named **m5StickC-plus-xxxxxx**.
 2. Connect to that network from your phone or computer (no password required).
 3. Open a browser and go to **192.168.6.1**.
-4. Enter your Wi-Fi credentials and the TallyArbiter server IP and port (default: `4455`).
-5. Click Save. The device restarts and connects automatically.
+4. **Setup** — enter the TallyArbiter server IP and port (default: `4455`) and click Save. The device restarts and the access point comes back.
+5. **Configure WiFi** — choose your network, enter its password and click Save. The device connects and the access point closes.
+
+If the saved Wi-Fi network is not available (router still starting, another venue), the device keeps retrying it and opens the same access point after about 20 seconds. The access point closes by itself as soon as the network answers — no restart needed.
 
 ---
 
@@ -74,7 +76,7 @@ In VS Code: open the repository folder, pick the environment in the status bar (
 | **M5 button** — hold 5 s | Reset Wi-Fi settings and restart |
 | **Action button** — single click | Show brightness bar (first click), then cycle brightness |
 | **Action button** — long press | Run LED sequential check (Program → Preview → Aux → All) |
-| **Grove pin G33** — short press | Open configuration portal |
+| **Grove pin G33** — short press | Open the setup access point (closes after 2 min; tally keeps running) |
 | **Grove pin G33** — hold 3 s | Erase all settings and restart |
 
 ---
