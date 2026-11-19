@@ -1,10 +1,12 @@
 // ============================================================================
-// m5hal.ino — M5Stack hardware abstraction layer
+// m5hal.cpp — M5Stack hardware abstraction layer
 //
 // All direct hardware calls are isolated here so the rest of the code
 // stays board-independent.  Add a new board variant by extending each
 // function with the appropriate #elif block.
 // ============================================================================
+
+#include "globals.h"
 
 // ----------------------------------------------------------------------------
 // Logging

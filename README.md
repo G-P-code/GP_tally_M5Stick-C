@@ -1,6 +1,6 @@
 # GP Tally M5StickC
 
-An Arduino firmware for the [M5StickC, M5StickC-Plus, and M5StickC-Plus2](https://m5stack.com) that turns the device into a wireless tally light listener client for [TallyArbiter](https://github.com/josephdadams/TallyArbiter).
+A PlatformIO / Arduino firmware for the [M5StickC, M5StickC-Plus, and M5StickC-Plus2](https://m5stack.com) that turns the device into a wireless tally light listener client for [TallyArbiter](https://github.com/josephdadams/TallyArbiter).
 
 Based on the original [m5stickc-listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/m5stickc-listener) by Joseph Adams.
 
@@ -28,46 +28,30 @@ Based on the original [m5stickc-listener](https://github.com/josephdadams/TallyA
 
 ## Supported Hardware
 
-| Board | Arduino IDE Board |
+| Board | PlatformIO environment |
 |---|---|
-| M5StickC | `M5Stack Arduino > M5StickC` |
-| M5StickC-Plus | `M5Stack Arduino > M5StickCPlus` |
-| M5StickC-Plus2 | `M5Stack Arduino > M5StickCPlus2` |
+| M5StickC | `m5stickc` |
+| M5StickC-Plus | `m5stickc-plus` |
+| M5StickC-Plus2 | `m5stickc-plus2` |
 
-Board selection is automatic when using the Arduino IDE board selector. Manual override defines are available in `GP_tally_M5Stick-C.ino` if needed.
-
----
-
-## Requirements
-
-### Libraries
-
-Install via **Library Manager** (Sketch > Include Library > Manage Libraries):
-
-| Library | Author | Version |
-|---|---|---|
-| M5StickC | M5Stack | latest |
-| M5StickC-Plus | M5Stack | latest |
-| M5StickC-Plus2 | M5Stack | latest |
-| WebSockets | Links2004 | **2.3.4** |
-| ArduinoJson | Benoît Blanchon | **7.x** |
-| WiFiManager | tzapu | latest |
-| MultiButton | poelstra | latest |
-
-> **Note:** Install only the M5Stack library that matches your hardware. Having multiple M5Stack libraries installed simultaneously causes a `multiple definition of 'M5'` linker error.
-
-> **Note:** `timum-viw/SocketIoClient` and `Arduino_JSON` are not used and can be removed if previously installed.
+Each environment selects the matching board definition from `boards/` and the matching M5Stack library. Manual override defines are available in `include/board.h` if needed.
 
 ---
 
-## Installation
+## Building
 
-1. Clone or download this repository.
-2. Open `GP_tally_M5Stick-C/GP_tally_M5Stick-C.ino` in Arduino IDE.
-3. Select the correct board under **Tools > Board**.
-4. Set **Tools > Partition Scheme** to **Minimal SPIFFS (... MB App with OTA / ... SPIFFS)**. This is required to fit the firmware with OTA support.
-5. Install all required libraries.
-6. Flash to your device.
+The project is built with [PlatformIO](https://platformio.org) — either the **PlatformIO IDE** extension for VS Code or the `pio` command line. All libraries, the ESP32 core and the partition scheme are defined in `platformio.ini` and installed automatically; nothing needs to be installed by hand. See [REQUIREMENTS.md](REQUIREMENTS.md) for the exact versions.
+
+```sh
+pio run                                   # build all three boards
+pio run -e m5stickc-plus2                 # build one board
+pio run -e m5stickc-plus2 -t upload       # build + flash over USB
+pio device monitor                        # serial monitor (115200)
+```
+
+Firmware images are written to `.pio/build/<env>/firmware.bin`.
+
+In VS Code: open the repository folder, pick the environment in the status bar (or the PlatformIO sidebar) and use **Build** / **Upload** / **Monitor**.
 
 ---
 
@@ -139,29 +123,40 @@ LED brightness tracks the display brightness setting. LEDs can be toggled on/off
 2. Navigate to the device IP address shown on screen from any browser on the same network.
 3. Go to **Update** in the portal menu and upload a compiled `.bin` file.
 
-### Via Arduino IDE
+### Via PlatformIO
 
-Select the device under **Tools > Port > Network ports** and upload normally.
+Use the matching `-ota` environment and pass the device IP address:
+
+```sh
+pio run -e m5stickc-plus2-ota -t upload --upload-port 192.168.1.50
+```
 
 - Hostname: `m5StickC-plus-xxxxxx`
-- Password: `tallyarbiter`
+- Password: `tallyarbiter` (already set in `platformio.ini`)
 
 ---
 
 ## Project Structure
 
 ```
-GP_tally_M5Stick-C/
-├── GP_tally_M5Stick-C.ino  — board detection, globals, setup(), loop()
-├── config.h                 — all #define constants and NVS preference keys
-├── screen.ino               — screen state management and painting
-├── buttons.ino              — brightness OSD, LED check, reset button
-├── tally.ino                — Socket.IO events and tally data processing
-├── network.ino              — Wi-Fi, WifiManager, reconnection
-├── leds.ino                 — external LED control and animations
-├── power.ino                — CPU performance mode and battery cache
-└── m5hal.ino                — M5Stack hardware abstraction layer
+platformio.ini         — build environments, ESP32 core and library versions
+boards/                — board definitions for StickC / Plus / Plus2
+include/
+├── board.h            — board detection and M5Stack library includes
+├── config.h           — all #define constants and NVS preference keys
+└── globals.h          — shared globals (extern) and function prototypes
+src/
+├── main.cpp           — global definitions, setup(), loop()
+├── screen.cpp         — screen state management and painting
+├── buttons.cpp        — brightness OSD, LED check, reset button
+├── tally.cpp          — Socket.IO events and tally data processing
+├── network.cpp        — Wi-Fi, WifiManager, reconnection
+├── leds.cpp           — external LED control and animations
+├── power.cpp          — CPU performance mode and battery cache
+└── m5hal.cpp          — M5Stack hardware abstraction layer
 ```
+
+Older versions built with the Arduino IDE are available as git tags `v4.5.1`, `v4.5.2`, `v4.5.3`.
 
 ---
 

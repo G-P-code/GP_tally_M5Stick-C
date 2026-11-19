@@ -4,6 +4,17 @@ All notable changes to GP Tally M5StickC are documented here.
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **Build system migrated from Arduino IDE to PlatformIO** — `platformio.ini` with environments `m5stickc`, `m5stickc-plus`, `m5stickc-plus2` and matching `-ota` variants. ESP32 core, partition scheme and all library versions are pinned, so builds are reproducible without manual library installation.
+- **ESP32 platform** — pioarduino `55.03.313` (Arduino-ESP32 core 3.3.13).
+- **Board definitions** — `boards/` contains definitions for StickC, StickC-Plus and StickC-Plus2 (not shipped by pioarduino).
+- **Source layout** — sketch tabs (`*.ino`) converted to regular C++ (`src/*.cpp`). Shared globals and prototypes moved to `include/globals.h`, board detection to `include/board.h`. No functional changes.
+- **Docs** — README and REQUIREMENTS updated for PlatformIO. Library versions in docs now match the versions actually used (WebSockets 2.7.2, not 2.3.4).
+
+---
+
 ## [4.5.3] — 2026-03-18
 
 ### Changed

@@ -1,5 +1,5 @@
 // ============================================================================
-// tally.ino — TallyArbiter Socket.IO communication and tally data processing
+// tally.cpp — TallyArbiter Socket.IO communication and tally data processing
 //
 // Socket.IO v2 implemented directly over WebSocketsClient (links2004/WebSockets).
 // JSON parsing uses ArduinoJson v7.
@@ -14,6 +14,8 @@
 //     '0' — connect
 //     '2' — event  → payload is JSON array ["eventName", ...data]
 // ============================================================================
+
+#include "globals.h"
 
 // ============================================================================
 // Socket.IO connection

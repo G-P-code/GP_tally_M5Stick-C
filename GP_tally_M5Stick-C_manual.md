@@ -57,7 +57,7 @@ LED brightness follows the display brightness setting.
 
 ### Over-the-air (OTA) firmware update
 
-The device supports OTA updates via Arduino IDE. Hostname: **m5StickC-plus-xxxxxx**. Password: **tallyarbiter**.
+The device supports OTA updates via PlatformIO (`-ota` environments) or the web portal. Hostname: **m5StickC-plus-xxxxxx**. Password: **tallyarbiter**.
 
 ---
 
@@ -116,4 +116,4 @@ LED spilgtums seko ekrāna spilgtuma iestatījumam.
 
 ### Programmatūras atjaunināšana pa gaisu (OTA)
 
-Ierīce atbalsta OTA atjaunināšanu caur Arduino IDE. Resursdatora nosaukums: **m5StickC-plus-xxxxxx**. Parole: **tallyarbiter**.
+Ierīce atbalsta OTA atjaunināšanu caur PlatformIO (`-ota` vides) vai tīmekļa portālu. Resursdatora nosaukums: **m5StickC-plus-xxxxxx**. Parole: **tallyarbiter**.

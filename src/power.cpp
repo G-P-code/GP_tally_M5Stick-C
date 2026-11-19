@@ -1,6 +1,8 @@
 // ============================================================================
-// power.ino — CPU performance mode and battery info cache
+// power.cpp — CPU performance mode and battery info cache
 // ============================================================================
+
+#include "globals.h"
 
 // Switch CPU between 80 MHz (idle/power-save) and 160 MHz (active).
 void setPerformanceMode(bool high) {

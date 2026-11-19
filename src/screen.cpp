@@ -1,5 +1,5 @@
 // ============================================================================
-// screen.ino — Screen state management and painting
+// screen.cpp — Screen state management and painting
 //
 //  switchToSettings(byUser) — set state + start portal + paint
 //  switchToTally()          — set state + stop portal  + paint
@@ -11,6 +11,8 @@
 // Rule: anything that only needs to refresh pixels calls repaintCurrentScreen().
 //       Only intentional user/socket transitions call switchTo*().
 // ============================================================================
+
+#include "globals.h"
 
 void paintSettingsScreen() {
   m5_fillScreen(TFT_BLACK);

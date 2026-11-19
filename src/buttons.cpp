@@ -1,5 +1,5 @@
 // ============================================================================
-// buttons.ino — Button-driven actions and their tick functions
+// buttons.cpp — Button-driven actions and their tick functions
 //
 //   updateBrightness()    — cycle brightness, show OSD
 //   showBrightnessOsd()   — draw brightness bar overlay
@@ -8,6 +8,8 @@
 //   ledCheckTick()        — advance LED check state machine
 //   resetTick()           — handle TRIGGER_PIN hold-to-reset
 // ============================================================================
+
+#include "globals.h"
 
 // ----------------------------------------------------------------------------
 // Brightness

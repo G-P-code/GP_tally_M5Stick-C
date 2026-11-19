@@ -1,6 +1,8 @@
 // ============================================================================
-// leds.ino — External LED control, flash and reassign animations
+// leds.cpp — External LED control, flash and reassign animations
 // ============================================================================
+
+#include "globals.h"
 
 // Update external LEDs to reflect actualType.
 // Called from evaluateMode() — never blocked by screen state.
