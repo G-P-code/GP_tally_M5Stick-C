@@ -5,7 +5,7 @@
 
 #include "globals.h"
 
-String version = "4.5.3";
+String version = "4.5.4";
 
 // ============================================================================
 // USER CONFIG — change before flashing
