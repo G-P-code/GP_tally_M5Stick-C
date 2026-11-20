@@ -69,7 +69,11 @@ void paintSettingsScreen() {
 #else
   String batStr = batteryCache.isCharging ? "Charging..." : (batteryCache.isCharged ? "Charged." : (String(batteryCache.level) + "%"));
   M5.Lcd.print(batStr);
+#if defined(STICK_C)
+  String verStr = "v" + version;           // flush with the right edge on 160 px
+#else
   String verStr = "v" + version + "   ";
+#endif
   int verX = M5.Lcd.width() - M5.Lcd.textWidth(verStr);
   int verY = M5.Lcd.getCursorY();
   M5.Lcd.setTextColor(DARKGREY, BLACK);
