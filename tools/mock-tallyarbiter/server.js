@@ -2,7 +2,7 @@
 // without a real server. Same socket.io version and the same listener events;
 // listener_reassign_object is refused without a login, as in 3.3.0.
 //
-//   npm install && node server.js [deviceId] [port]
+//   npm install && node server.js [deviceId] [port] [device 1 name]
 //
 // deviceId: the tally's current TallyArbiter device id (Settings / log), so it
 // lands on device 1. Commands on stdin:
@@ -17,7 +17,7 @@ const { Server } = require('socket.io')
 
 const port = Number(process.argv[3] || 4455)
 const devices = [
-  { id: process.argv[2] || 'mock-dev-1', name: 'MOCK 1', enabled: true, linkedBusses: [] },
+  { id: process.argv[2] || 'mock-dev-1', name: process.argv[4] || 'MOCK 1', enabled: true, linkedBusses: [] },
   { id: 'mock-dev-2', name: 'MOCK 2', enabled: true, linkedBusses: [] },
 ]
 const bus_options = [

@@ -169,7 +169,7 @@ pio run -e m5stickc-ota -t upload --upload-port 192.168.1.50
 ```sh
 cd tools/mock-tallyarbiter
 npm install
-node server.js <device-id>     # the tally's current device id, port 4455
+node server.js <device-id> 4455 "ATEM 1"   # tally's device id, port, its name
 ```
 
 Point the tally at the computer's IP (portal **Setup**), then type `pv 1`, `pgm 1`, `off 1`, `reassign 2`, `flash` or `list`.
