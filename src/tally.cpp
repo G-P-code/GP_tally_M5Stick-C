@@ -11,6 +11,12 @@
 //   device_states  which buses have sources on which device
 //   devices        device id -> name
 // The active bus with the highest priority wins.
+//
+// Reassign: the server tells us the new device id. Since TallyArbiter 3.3 the
+// listener_reassign_object reply needs a producer login, which a listener does
+// not have, so the server would keep us in the old device's room. Instead we
+// rejoin: drop the link and connect again with the new id (works with every
+// TallyArbiter version). connected() stays true for that moment.
 // ============================================================================
 
 #include "tally.h"
@@ -50,6 +56,9 @@ bool       connected_  = false;
 uint32_t   changeCount = 0;
 bool       flashReq    = false;
 bool       reassignReq = false;
+bool       rejoinReq   = false;   // reconnect with the new device id (set in an event)
+bool       rejoining   = false;   // that reconnect is under way
+uint32_t   rejoinAt    = 0;
 
 // Liveness: the server pings every pingInterval; nothing for
 // pingInterval + pingTimeout means the link is dead even if TCP looks open.
@@ -159,13 +168,14 @@ void onConnect() {
   emit("listenerclient_connect", p.as<JsonVariantConst>());
 
   connected_ = true;
+  rejoining  = false;
   lastRxMs   = millis();
   setReconnectInterval(TA_RETRY_MIN_MS);
   changeCount++;
 }
 
 void onDisconnect() {
-  if (connected_) LOGI("Disconnected from TallyArbiter");
+  if (connected_ && !rejoining) LOGI("Disconnected from TallyArbiter");
   connected_ = false;
   buses.clear();
   activeBuses.clear();
@@ -175,14 +185,10 @@ void onDisconnect() {
 }
 
 void onReassign(const String &oldId, const String &newId) {
-  LOGI("Reassign: %s -> %s", oldId.c_str(), newId.c_str());
-  JsonDocument p;
-  p["oldDeviceId"] = oldId;
-  p["newDeviceId"] = newId;
-  emit("listener_reassign_object", p.as<JsonVariantConst>());
-  emit("devices");
+  LOGI("Reassign: %s -> %s, reconnecting with the new device", oldId.c_str(), newId.c_str());
   setDeviceId(newId);
   reassignReq = true;
+  rejoinReq   = true;
 }
 
 void onEvent(const char *json, size_t len) {
@@ -233,6 +239,10 @@ void onEvent(const char *json, size_t len) {
 
   } else if (!strcmp(event, "flash")) {
     flashReq = true;
+
+  } else if (!strcmp(event, "error")) {
+    // e.g. "Invalid Device Id specified. Reassigning to the first Device"
+    LOGI("TallyArbiter says: %s", msg[1] | "");
 
   } else if (!strcmp(event, "messaging")) {
     // "server" messages are TallyArbiter's own notices (e.g. our previous
@@ -293,6 +303,18 @@ void loop(bool networkUp) {
   ws.loop();
   const uint32_t now = millis();
 
+  if (rejoinReq) {                    // not from inside the WebSocket callback
+    rejoinReq = false;
+    rejoining = true;
+    rejoinAt  = now;
+    ws.disconnect();                  // the library reconnects after TA_RETRY_MIN_MS
+  }
+  if (rejoining && now - rejoinAt > TA_REJOIN_MAX_MS) {
+    rejoining = false;                // did not come back: show it as down
+    LOGI("Disconnected from TallyArbiter");
+    changeCount++;
+  }
+
   if (connected_ && now - lastRxMs > pingIntervalMs + pingTimeoutMs + TA_PING_MARGIN_MS) {
     LOGE("No ping from TallyArbiter for %lu s, disconnecting", (unsigned long)((now - lastRxMs) / 1000));
     ws.disconnect();
@@ -308,7 +330,7 @@ void loop(bool networkUp) {
 
 void networkCameUp() { setReconnectInterval(TA_RETRY_MIN_MS); }
 
-bool              connected()  { return connected_; }
+bool              connected()  { return connected_ || rejoining; }
 const TallyState &state()      { return st; }
 const String     &deviceName() { return name; }
 uint32_t          changes()    { return changeCount; }

@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#define FW_VERSION "4.6"
+#define FW_VERSION "4.7"
 
 // ----------------------------------------------------------------------------
 // Pins (same on StickC and StickC-Plus)
@@ -67,6 +67,7 @@ constexpr uint32_t TA_RETRY_MIN_MS     = 1000;   // reconnect interval, doubles 
 constexpr uint32_t TA_RETRY_MAX_MS     = 30000;
 constexpr uint32_t TA_PING_INTERVAL_MS = 25000;  // Socket.IO v4 defaults, replaced by the
 constexpr uint32_t TA_PING_TIMEOUT_MS  = 20000;  //   server's values from the open packet
+constexpr uint32_t TA_REJOIN_MAX_MS    = 10000;  // reassign reconnect counts as connected this long
 constexpr uint32_t TA_PING_MARGIN_MS   = 5000;   // slack before a silent link counts as dead
 
 // ----------------------------------------------------------------------------
