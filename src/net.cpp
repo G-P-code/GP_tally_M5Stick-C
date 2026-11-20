@@ -5,7 +5,9 @@
 //    network; the setup AP opens after WIFI_AP_AFTER_MS without one and closes
 //    by itself when the network answers. Opening the AP without a network
 //    switches the station off (WiFiManager), so it is started again here.
-//  * Station state from the interface's event bits (associated AND has IP).
+//  * The setup AP can also be opened by hand (M5 long press on the Settings
+//    screen, or G33); that one closes after SETUP_AP_MANUAL_TIMEOUT_S.
+//  * Station is up when it is associated AND has an IP (WiFi.STA).
 //  * A phone on the setup AP pauses station retries (the portal scan fails
 //    while the station is connecting).
 //  * Web config (startWebPortal) runs whenever the station is up, so the
@@ -36,7 +38,7 @@ const IPAddress       apAddress(SETUP_AP_IP);
 
 bool     staUp        = false;
 bool     apUp_        = false;
-bool     apManual     = false;   // opened with G33 (has its own timeout)
+bool     apManual     = false;   // opened by hand (has its own timeout)
 bool     apSuppressed = false;   // closed by hand without a network: no auto-reopen
 bool     noCreds      = false;   // nothing saved: AP at once
 bool     retryPaused  = false;   // phone on the setup AP

@@ -28,12 +28,29 @@ Based on the original [m5stickc-listener](https://github.com/josephdadams/TallyA
 
 ## Supported Hardware
 
-| Board | PlatformIO environment |
+| Board | Firmware |
 |---|---|
-| M5StickC | `m5stickc` |
-| M5StickC-Plus | `m5stickc-plus` |
+| M5StickC | `GP_tally_M5StickC_v<ver>.bin` |
+| M5StickC-Plus | same file |
 
-Each environment selects the matching board definition from `boards/` (flash size, PSRAM). The board itself is detected at run time.
+One firmware for both: the board is detected at run time.
+
+---
+
+## Installing a Release
+
+Download from [Releases](https://github.com/G-P-code/GP_tally_M5Stick-C/releases):
+
+| File | Use |
+|---|---|
+| `GP_tally_M5StickC_v<ver>_full.bin` | New or erased device, flashed over USB at address **0x0** (bootloader + partitions + firmware). **Erases the saved WiFi and TallyArbiter settings.** |
+| `GP_tally_M5StickC_v<ver>.bin` | Update of a working device: web portal **Update**, or over USB at address **0x10000**. Settings are kept. |
+
+Over USB without installing anything: open [ESP Tool](https://espressif.github.io/esptool-js/) in Chrome or Edge, **Connect**, add the file at the address above and **Program**. Or from the command line:
+
+```sh
+esptool.py --chip esp32 write_flash 0x0 GP_tally_M5StickC_v4.6_full.bin
+```
 
 ---
 
@@ -42,15 +59,22 @@ Each environment selects the matching board definition from `boards/` (flash siz
 The project is built with [PlatformIO](https://platformio.org) — either the **PlatformIO IDE** extension for VS Code or the `pio` command line. All libraries, the ESP32 core and the partition scheme are defined in `platformio.ini` and installed automatically; nothing needs to be installed by hand. See [REQUIREMENTS.md](REQUIREMENTS.md) for the exact versions.
 
 ```sh
-pio run                                   # build both boards
-pio run -e m5stickc-plus                 # build one board
-pio run -e m5stickc-plus -t upload       # build + flash over USB
-pio device monitor                        # serial monitor (115200)
+pio run                  # build
+pio run -t upload        # build + flash over USB (settings are kept)
+pio device monitor       # serial monitor (115200)
 ```
 
-Firmware images are written to `.pio/build/<env>/firmware.bin`.
+Each build also copies both release images to `release/` (`scripts/release_bins.py`), named with `FW_VERSION` from `include/config.h`.
 
-In VS Code: open the repository folder, pick the environment in the status bar (or the PlatformIO sidebar) and use **Build** / **Upload** / **Monitor**.
+In VS Code: open the repository folder and use **Build** / **Upload** / **Monitor** in the PlatformIO status bar or sidebar.
+
+### Making a release
+
+GitHub Actions (`.github/workflows/build.yml`) builds every push and pull request. To release:
+
+1. Set `FW_VERSION` in `include/config.h` and the `CHANGELOG.md` section heading to the new version, commit, merge to `main`.
+2. Tag it: `git tag v4.6 && git push origin v4.6` — the tag must equal `v` + `FW_VERSION`, or the build stops.
+3. Actions creates a **draft** release with both `.bin` files and the version's CHANGELOG section. Check it on GitHub and press **Publish**.
 
 ---
 
@@ -123,17 +147,17 @@ LED brightness tracks the display brightness setting. LEDs can be toggled on/off
 ### Via web portal
 
 1. Navigate to the device IP address (shown on the Settings screen) from any browser on the same network.
-2. Go to **Update** in the portal menu and upload a compiled `.bin` file.
+2. Go to **Update** in the portal menu and upload `GP_tally_M5StickC_v<ver>.bin` (not the `_full` file).
 
 ### Via PlatformIO
 
-Use the matching `-ota` environment and pass the device IP address:
+Use the `-ota` environment and pass the device IP address:
 
 ```sh
-pio run -e m5stickc-plus-ota -t upload --upload-port 192.168.1.50
+pio run -e m5stickc-ota -t upload --upload-port 192.168.1.50
 ```
 
-- Hostname: `m5StickC-plus-xxxxxx`
+- Hostname: `m5StickC-xxxxxx` / `m5StickC-plus-xxxxxx`
 - Password: `tallyarbiter` (already set in `platformio.ini`)
 
 ---
@@ -142,7 +166,9 @@ pio run -e m5stickc-plus-ota -t upload --upload-port 192.168.1.50
 
 ```
 platformio.ini      — build environments, ESP32 core and library versions
-boards/             — board definitions for StickC / StickC-Plus
+boards/             — StickC board definition (same for StickC-Plus)
+scripts/            — release_bins.py: versioned images to release/
+.github/workflows/  — build on push / PR, draft release on a v* tag
 include/
 ├── config.h        — pins, colours, timing, network constants, NVS keys
 └── log.h           — LOGI / LOGE / LOGD

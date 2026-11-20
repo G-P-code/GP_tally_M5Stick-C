@@ -36,15 +36,15 @@ The official `platformio/espressif32` platform only ships Arduino-ESP32 core 2.x
 
 Via the built-in web portal:
 
-1. Open the Settings screen on the device (M5 button single click)
-2. Navigate to the device IP address shown on screen from any browser on the same network
-3. Go to **Update** in the portal menu and upload `.pio/build/<env>/firmware.bin`
+1. Find the device IP on the Settings screen (M5 button single click)
+2. Open that address in any browser on the same network
+3. Go to **Update** in the portal menu and upload `release/GP_tally_M5StickC_v<ver>.bin` (not the `_full` file)
 
 Via PlatformIO:
 
 ```sh
-pio run -e m5stickc-plus-ota -t upload --upload-port <device-ip>
+pio run -e m5stickc-ota -t upload --upload-port <device-ip>
 ```
 
-- Hostname: `m5StickC-plus-xxxxxx`
+- Hostname: `m5StickC-xxxxxx` / `m5StickC-plus-xxxxxx`
 - Password: `tallyarbiter`

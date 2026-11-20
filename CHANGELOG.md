@@ -17,12 +17,17 @@ All notable changes to GP Tally M5StickC are documented here.
 - **Web config always on the network** — the portal (TallyArbiter server, info, firmware update) is reachable at the device IP whenever it is on the network, not only while the Settings screen is open.
 - **M5 long press on the Settings screen opens the setup AP without erasing WiFi** (on any screen it closes the AP when open). The M5 5 s hold that erased the WiFi settings is gone — erase from the portal (Info → Erase WiFi config) or by holding G33 for 3 s.
 - **M5StickC-Plus2 support removed** — no device to test on; to be added back when there is one.
+- **One firmware for M5StickC and M5StickC-Plus** — the board is detected at run time, so a single `m5stickc` environment (and `m5stickc-ota`) replaces the per-board ones.
+
+### Added — release
+- **Release images** — every build writes `release/GP_tally_M5StickC_v<ver>.bin` (update: web portal / OTA) and `..._full.bin` (new device, flash at 0x0; erases settings).
+- **GitHub Actions** — builds each push and pull request; a `v<ver>` tag matching `FW_VERSION` creates a draft release with both images.
 - Removed: `LAST_MSG` (messages are logged), `TALLY_EXTRA_OUTPUT` (LEDs always built in, switched with the M5 double click).
 
 ### Changed
-- **Build system migrated from Arduino IDE to PlatformIO** — `platformio.ini` with environments `m5stickc`, `m5stickc-plus` and matching `-ota` variants. ESP32 core, partition scheme and all library versions are pinned, so builds are reproducible without manual library installation.
+- **Build system migrated from Arduino IDE to PlatformIO** — `platformio.ini` (one `m5stickc` environment and its `-ota` variant, see above). ESP32 core, partition scheme and all library versions are pinned, so builds are reproducible without manual library installation.
 - **ESP32 platform** — pioarduino `55.03.313` (Arduino-ESP32 core 3.3.13).
-- **Board definitions** — `boards/` contains definitions for StickC and StickC-Plus (not shipped by pioarduino).
+- **Board definition** — `boards/m5stack-stickc.json` (not shipped by pioarduino).
 - **Source layout** — sketch tabs (`*.ino`) converted to regular C++ (`src/*.cpp`). Shared globals and prototypes moved to `include/globals.h`, board detection to `include/board.h`. No functional changes.
 - **Docs** — README and REQUIREMENTS updated for PlatformIO. Library versions in docs now match the versions actually used (WebSockets 2.7.2, not 2.3.4).
 
