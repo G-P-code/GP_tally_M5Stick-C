@@ -256,10 +256,11 @@ void handleButtons(uint32_t now) {
   auto &m5btn  = M5.BtnA;   // front
   auto &action = M5.BtnB;   // side
 
-  // Long press: setup AP on / off (WiFi settings are kept)
+  // Long press: open the setup AP from the Settings screen (WiFi settings
+  // are kept); close it from any screen.
   if (m5btn.wasHold()) {
-    if (net::apUp()) net::closeSetupAp();
-    else             net::openSetupAp();
+    if (net::apUp())                     net::closeSetupAp();
+    else if (screen == Screen::Settings) net::openSetupAp();
   }
   if (m5btn.wasSingleClicked()) {
     if (screen == Screen::Settings) { userSettings = false; userTally = !ta::connected(); }

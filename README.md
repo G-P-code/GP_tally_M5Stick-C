@@ -63,7 +63,7 @@ In VS Code: open the repository folder, pick the environment in the status bar (
 4. **Setup** — enter the TallyArbiter server IP and port (default: `4455`) and click Save. The device restarts and the access point comes back.
 5. **Configure WiFi** — choose your network, enter its password and click Save. The device connects and the access point closes.
 
-If the saved Wi-Fi network is not available (router still starting, another venue), the device keeps retrying it and opens the same access point after about 20 seconds. The access point closes by itself as soon as the network answers — no restart needed. A long press on the M5 button opens it any time without erasing anything, and closes it again; **Exit** in the portal closes it too. Closed without a network, it stays closed until the network has been back once.
+If the saved Wi-Fi network is not available (router still starting, another venue), the device keeps retrying it and opens the same access point after about 20 seconds. The access point closes by itself as soon as the network answers — no restart needed. A long press on the M5 button on the Settings screen opens it without erasing anything, and closes it again; **Exit** in the portal closes it too. Closed without a network, it stays closed until the network has been back once.
 
 Saving **Setup** in the portal always restarts the device to apply the new TallyArbiter address.
 
@@ -75,7 +75,7 @@ Saving **Setup** in the portal always restarts the device to apply the new Tally
 |---|---|
 | **M5 button** — single click | Toggle between Tally screen and Settings screen |
 | **M5 button** — double click | Toggle external LEDs on / off |
-| **M5 button** — long press (~1 s) | Open the setup access point (Wi-Fi settings are kept; closes after 2 min), or close it if open |
+| **M5 button** — long press (~1 s) | On the Settings screen: open the setup access point (Wi-Fi settings are kept; closes after 2 min). Any screen: close it if open |
 | **Action button** — single click | Show brightness bar (first click), then cycle brightness |
 | **Action button** — long press | Run LED sequential check (Program → Preview → Aux → All) |
 | **Grove pin G33** — short press | Open the setup access point (closes after 2 min; tally keeps running) |

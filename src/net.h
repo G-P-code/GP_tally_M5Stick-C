@@ -17,7 +17,7 @@ String ip();
 String apIp();
 uint32_t changes();            // bumps when up() / apUp() change
 
-void openSetupAp();            // M5 long press / G33; closes after SETUP_AP_MANUAL_TIMEOUT_S
+void openSetupAp();            // M5 long press on Settings / G33; closes after SETUP_AP_MANUAL_TIMEOUT_S
 void closeSetupAp();           // M5 long press while open / portal "Exit"
 bool eraseWifi();              // forget the saved network
 
