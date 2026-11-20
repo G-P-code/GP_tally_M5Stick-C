@@ -76,7 +76,7 @@ constexpr uint32_t TA_PING_MARGIN_MS   = 5000;   // slack before a silent link c
 #define OTA_PASSWORD "tallyarbiter"
 // Web portal login when reached over the network (the setup AP needs none)
 #define WEB_USER     "admin"
-#define WEB_PASSWORD OTA_PASSWORD
+#define WEB_PASSWORD "tally"
 constexpr uint32_t WIFI_AP_AFTER_MS          = 20000;  // no network this long: open the setup AP
 constexpr uint32_t WIFI_STA_RESTART_MS       = 10000;  // restart a station the setup AP switched off
 constexpr uint32_t SETUP_AP_MANUAL_TIMEOUT_S = 120;    // setup AP opened by hand (M5 / G33) closes after this
