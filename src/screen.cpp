@@ -75,7 +75,8 @@ void paintSettingsScreen() {
   String verStr = "v" + version;
   M5.Lcd.setTextColor(DARKGREY, BLACK);
   M5.Lcd.setTextDatum(TR_DATUM);
-  M5.Lcd.drawString(verStr, M5.Lcd.width(), M5.Lcd.getCursorY());
+  // 2 px margin: a glyph touching the last column is not drawn at all
+  M5.Lcd.drawString(verStr, M5.Lcd.width() - 2, M5.Lcd.getCursorY());
   M5.Lcd.setTextDatum(TL_DATUM);
 #else
   String verStr = "v" + version + "   ";

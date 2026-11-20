@@ -4,7 +4,7 @@ All notable changes to GP Tally M5StickC are documented here.
 
 ---
 
-## [4.5.4] — in development
+## [4.6] — in development
 
 ### Changed
 - **Build system migrated from Arduino IDE to PlatformIO** — `platformio.ini` with environments `m5stickc`, `m5stickc-plus`, `m5stickc-plus2` and matching `-ota` variants. ESP32 core, partition scheme and all library versions are pinned, so builds are reproducible without manual library installation.
