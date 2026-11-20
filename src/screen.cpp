@@ -169,7 +169,7 @@ void evaluateMode() {
       m5_drawDeviceName(DeviceName, DARKGREY, TFT_BLACK);
     }
 
-    // LED muted indicator — small notice centred on the top edge
+    // LED muted indicator — small notice in the top-left corner
 #if TALLY_EXTRA_OUTPUT
     if (!ledsEnabled) {
       uint16_t bgc = (actualType != "" && validColor) ? m5_color565(r, g, b) : (uint16_t)TFT_BLACK;
