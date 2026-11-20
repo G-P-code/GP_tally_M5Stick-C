@@ -63,7 +63,7 @@ In VS Code: open the repository folder, pick the environment in the status bar (
 4. **Setup** — enter the TallyArbiter server IP and port (default: `4455`) and click Save. The device restarts and the access point comes back.
 5. **Configure WiFi** — choose your network, enter its password and click Save. The device connects and the access point closes.
 
-If the saved Wi-Fi network is not available (router still starting, another venue), the device keeps retrying it and opens the same access point after about 20 seconds. The access point closes by itself as soon as the network answers — no restart needed. To close it by hand, long-press the M5 button or choose **Exit** in the portal; it then stays closed until the network has been back once (G33 opens it again any time).
+If the saved Wi-Fi network is not available (router still starting, another venue), the device keeps retrying it and opens the same access point after about 20 seconds. The access point closes by itself as soon as the network answers — no restart needed. A long press on the M5 button opens it any time without erasing anything, and closes it again; **Exit** in the portal closes it too. Closed without a network, it stays closed until the network has been back once.
 
 Saving **Setup** in the portal always restarts the device to apply the new TallyArbiter address.
 
@@ -75,8 +75,7 @@ Saving **Setup** in the portal always restarts the device to apply the new Tally
 |---|---|
 | **M5 button** — single click | Toggle between Tally screen and Settings screen |
 | **M5 button** — double click | Toggle external LEDs on / off |
-| **M5 button** — long press (~1 s) | Close the setup access point |
-| **M5 button** — hold 5 s | Reset Wi-Fi settings and restart |
+| **M5 button** — long press (~1 s) | Open the setup access point (Wi-Fi settings are kept; closes after 2 min), or close it if open |
 | **Action button** — single click | Show brightness bar (first click), then cycle brightness |
 | **Action button** — long press | Run LED sequential check (Program → Preview → Aux → All) |
 | **Grove pin G33** — short press | Open the setup access point (closes after 2 min; tally keeps running) |
@@ -104,7 +103,7 @@ Shown automatically on disconnect and on startup until a connection is establish
 - Battery level: **Charging...** / **Charged.** / **nn%**
 - Firmware version
 
-While the Settings screen is open, the configuration web portal is also active — navigate to the device IP address from any browser on the same network to change the TallyArbiter server address and port.
+Whenever the device is on the network, the configuration web portal is available at its IP address (shown on the Settings screen) — change the TallyArbiter server, see device info or upload new firmware without touching the device.
 
 ---
 
@@ -124,9 +123,8 @@ LED brightness tracks the display brightness setting. LEDs can be toggled on/off
 
 ### Via web portal
 
-1. Open the Settings screen on the device (M5 button single click).
-2. Navigate to the device IP address shown on screen from any browser on the same network.
-3. Go to **Update** in the portal menu and upload a compiled `.bin` file.
+1. Navigate to the device IP address (shown on the Settings screen) from any browser on the same network.
+2. Go to **Update** in the portal menu and upload a compiled `.bin` file.
 
 ### Via PlatformIO
 

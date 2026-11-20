@@ -47,7 +47,6 @@ constexpr uint16_t COLOR_IDLE_ID       = 0x52AA;   // a little darker than the n
 // Timing (ms)
 // ----------------------------------------------------------------------------
 constexpr uint32_t BUTTON_HOLD_MS      = 600;    // long press
-constexpr uint32_t WIFI_ERASE_HOLD_MS  = 5000;   // M5 button held: erase WiFi
 constexpr uint32_t TRIGGER_DEBOUNCE_MS = 50;
 constexpr uint32_t TRIGGER_HOLD_MS     = 3000;   // G33 held: erase WiFi
 constexpr uint32_t OSD_MS              = 1500;   // brightness bar

@@ -14,6 +14,8 @@ All notable changes to GP Tally M5StickC are documented here.
 - **Settings** in one place (`settings`), saved only when changed; the TallyArbiter device id is now saved whenever the server assigns one.
 - **Logging** with `LOGI` / `LOGE` / `LOGD` (`-DVERBOSE` for debug).
 - **No connection attempt with the default server** `0.0.0.0` — the log says to set it in the portal.
+- **Web config always on the network** — the portal (TallyArbiter server, info, firmware update) is reachable at the device IP whenever it is on the network, not only while the Settings screen is open.
+- **M5 long press opens the setup AP without erasing WiFi** (and closes it when open). The M5 5 s hold that erased the WiFi settings is gone — erase from the portal (Info → Erase WiFi config) or by holding G33 for 3 s.
 - Removed: `LAST_MSG` (messages are logged), `TALLY_EXTRA_OUTPUT` (LEDs always built in, switched with the M5 double click).
 
 ### Changed

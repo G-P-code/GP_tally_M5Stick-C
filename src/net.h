@@ -17,9 +17,8 @@ String ip();
 String apIp();
 uint32_t changes();            // bumps when up() / apUp() change
 
-void setWebPortal(bool on);    // config page on the station IP (Settings screen)
-void openSetupAp();            // G33 short press; closes after SETUP_AP_MANUAL_TIMEOUT_S
-void closeSetupAp();           // M5 long press / portal "Exit"
+void openSetupAp();            // M5 long press / G33; closes after SETUP_AP_MANUAL_TIMEOUT_S
+void closeSetupAp();           // M5 long press while open / portal "Exit"
 bool eraseWifi();              // forget the saved network
 
 }  // namespace net

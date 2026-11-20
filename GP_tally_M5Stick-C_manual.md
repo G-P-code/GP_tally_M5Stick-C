@@ -12,7 +12,7 @@
 4. Open **Setup**, enter the **Tally Arbiter server IP address and port** (default port: 4455) and click Save. The device restarts and the access point comes back.
 5. Open **Configure WiFi**, choose your network, enter its password and click Save. The device connects automatically.
 
-If the saved Wi-Fi network is not available, the device keeps retrying it and opens the same access point after about 20 seconds. The access point closes by itself as soon as the network is back. To close it by hand, long-press the M5 button or choose **Exit** in the portal.
+If the saved Wi-Fi network is not available, the device keeps retrying it and opens the same access point after about 20 seconds. The access point closes by itself as soon as the network is back. A long press on the M5 button opens it any time without erasing anything, and closes it again.
 
 ### Controls
 
@@ -20,8 +20,7 @@ If the saved Wi-Fi network is not available, the device keeps retrying it and op
 |---|---|
 | **M5 button** — single click | Toggle between Tally screen and Settings screen |
 | **M5 button** — double click | Toggle external LEDs on / off |
-| **M5 button** — long press (~1 s) | Close the setup access point |
-| **M5 button** — hold 5 s | Reset Wi-Fi settings and restart (forces setup portal) |
+| **M5 button** — long press (~1 s) | Open the setup access point (Wi-Fi settings are kept; closes after 2 min), or close it if open |
 | **Action button** — single click | Cycle display brightness |
 | **Action button** — long press | Run LED sequential check (Program → Preview → Aux → All) |
 | **Grove pin G33** — short press | Open the setup access point (closes after 2 min; tally keeps running) |
@@ -44,7 +43,7 @@ Shown automatically on disconnect. Displays:
 - Battery level
 - Firmware version
 
-While the Settings screen is open, the configuration web portal is also active — you can access it from any browser at the device's IP address to change the Tally Arbiter server address and port without pressing any buttons.
+Whenever the device is on the network, the configuration web portal is available at its IP address (shown on the Settings screen): change the Tally Arbiter server, see device info or upload new firmware.
 
 ### External LEDs (optional)
 
@@ -74,7 +73,7 @@ The device supports OTA updates via PlatformIO (`-ota` environments) or the web 
 4. Atver **Setup**, ievadi **Tally Arbiter servera IP adresi un portu** (noklusējuma ports: 4455) un nospied Save. Ierīce restartēsies, un piekļuves punkts parādīsies atkal.
 5. Atver **Configure WiFi**, izvēlies savu tīklu, ievadi paroli un nospied Save. Ierīce savienosies automātiski.
 
-Ja saglabātais Wi-Fi tīkls nav pieejams, ierīce turpina to meklēt un pēc ~20 sekundēm atver to pašu piekļuves punktu. Tiklīdz tīkls atkal ir pieejams, piekļuves punkts aizveras pats. Lai to aizvērtu ar roku, ilgi nospied M5 pogu vai portālā izvēlies **Exit**.
+Ja saglabātais Wi-Fi tīkls nav pieejams, ierīce turpina to meklēt un pēc ~20 sekundēm atver to pašu piekļuves punktu. Tiklīdz tīkls atkal ir pieejams, piekļuves punkts aizveras pats. Ilgs M5 pogas spiediens to atver jebkurā brīdī, neko nedzēšot, un atkal aizver.
 
 ### Vadība
 
@@ -82,8 +81,7 @@ Ja saglabātais Wi-Fi tīkls nav pieejams, ierīce turpina to meklēt un pēc ~2
 |---|---|
 | **M5 poga** — viens klikšķis | Pārslēgties starp Tally ekrānu un Iestatījumu ekrānu |
 | **M5 poga** — dubultklikšķis | Ieslēgt / izslēgt ārējos LED |
-| **M5 poga** — ilgs spiediens (~1 s) | Aizvērt iestatīšanas piekļuves punktu |
-| **M5 poga** — turēt 5 s | Atiestatīt Wi-Fi iestatījumus un restartēt (atver iestatīšanas portālu) |
+| **M5 poga** — ilgs spiediens (~1 s) | Atvērt iestatīšanas piekļuves punktu (Wi-Fi iestatījumi saglabājas; aizveras pēc 2 min) vai aizvērt to, ja atvērts |
 | **Action poga** — viens klikšķis | Mainīt ekrāna spilgtumu |
 | **Action poga** — garš spiediens | Palaist LED secīgo pārbaudi (Program → Preview → Aux → Visi) |
 | **Grove kontakts G33** — īss spiediens | Atvērt iestatīšanas piekļuves punktu (aizveras pēc 2 min; tally turpina strādāt) |
@@ -106,7 +104,7 @@ Parādās automātiski, zaudējot savienojumu. Rāda:
 - Akumulatora uzlādes līmeni
 - Programmatūras versiju
 
-Kamēr Iestatījumu ekrāns ir atvērts, darbojas arī konfigurācijas web portāls — no jebkura pārlūka var doties uz ierīces IP adresi un mainīt Tally Arbiter servera adresi un portu, nespiedot nevienu pogu.
+Kamēr ierīce ir tīklā, konfigurācijas web portāls vienmēr pieejams tās IP adresē (redzama Iestatījumu ekrānā): var mainīt Tally Arbiter serveri, skatīt ierīces informāciju vai augšupielādēt jaunu firmware.
 
 ### Ārējie LED (pēc izvēles)
 

@@ -256,13 +256,11 @@ void handleButtons(uint32_t now) {
   auto &m5btn  = M5.BtnA;   // front
   auto &action = M5.BtnB;   // side
 
-  if (m5btn.pressedFor(WIFI_ERASE_HOLD_MS)) {
-    LOGI("M5 button held: erasing WiFi");
-    renderFinal("Erasing WiFi...");
-    net::eraseWifi();
-    ESP.restart();
+  // Long press: setup AP on / off (WiFi settings are kept)
+  if (m5btn.wasHold()) {
+    if (net::apUp()) net::closeSetupAp();
+    else             net::openSetupAp();
   }
-  if (m5btn.wasHold() && net::apUp()) net::closeSetupAp();
   if (m5btn.wasSingleClicked()) {
     if (screen == Screen::Settings) { userSettings = false; userTally = !ta::connected(); }
     else                            { userSettings = true;  userTally = false; }
@@ -380,7 +378,6 @@ void loop() {
   const Screen want = userSettings ? Screen::Settings
                     : (taUp || userTally) ? Screen::Tally : Screen::Settings;
   if (want != screen) { screen = want; dirty = true; }
-  net::setWebPortal(screen == Screen::Settings);
 
   // Data shown on screen
   if (ta::changes() != seenTa)       { seenTa = ta::changes();       dirty = true; }

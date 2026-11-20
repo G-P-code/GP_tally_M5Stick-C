@@ -8,8 +8,10 @@
 //  * Station state from the interface's event bits (associated AND has IP).
 //  * A phone on the setup AP pauses station retries (the portal scan fails
 //    while the station is connecting).
-//  * Web config (startWebPortal) and setup AP (startConfigPortal) both use
-//    port 80 — never together. Portal states are read from the library.
+//  * Web config (startWebPortal) runs whenever the station is up, so the
+//    portal is reachable at the device IP in normal operation. The setup AP
+//    (startConfigPortal) uses the same port 80 — never together. Portal
+//    states are read from the library.
 //  * /paramsave: a reload or GET is ignored, a blank field keeps its value.
 //    A real save restarts the device.
 //  * /erase replaced: core 3.x refuses to erase before the STA has started.
@@ -262,6 +264,9 @@ void loop() {
     ArduinoOTA.handle();
   }
 
+  // Web config on the station IP whenever we are on the network
+  webPortal(staUp && !apUp_);
+
   if (apUp_ || wm.getWebPortalActive()) wm.process();
 }
 
@@ -271,8 +276,6 @@ String   ssid()    { return WiFi.SSID(); }
 String   ip()      { return WiFi.localIP().toString(); }
 String   apIp()    { return apAddress.toString(); }
 uint32_t changes() { return changeCount; }
-
-void setWebPortal(bool on) { webPortal(on); }
 
 void openSetupAp() {
   apSuppressed = false;
