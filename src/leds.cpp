@@ -1,116 +1,81 @@
-// ============================================================================
-// leds.cpp — External LED control, flash and reassign animations
-// ============================================================================
+#include "leds.h"
 
-#include "globals.h"
+#include <Arduino.h>
+#include "config.h"
+#include "log.h"
 
-// Update external LEDs to reflect actualType.
-// Called from evaluateMode() — never blocked by screen state.
-void externalLed() {
-#if TALLY_EXTRA_OUTPUT
-  if (ledCheckActive) return;  // LED check animation owns the LEDs
-  if (!ledsEnabled) {          // LEDs disabled by user (btnM5 double-click)
-    ledcWrite(led_program, 0);
-    ledcWrite(led_preview, 0);
-    ledcWrite(led_aux, 0);
-    return;
+namespace {
+
+int       pinProgram = -1;
+int       duty       = 0;
+bool      enabled_   = true;
+bool      testing    = false;
+leds::Out tally      = leds::Out::Off;
+leds::Out testOut    = leds::Out::Off;
+
+void write(leds::Out out) {
+  if (pinProgram < 0) return;
+  int program = 0, preview = 0, aux = 0;
+  switch (out) {
+    case leds::Out::Program: program = duty;                              break;
+    case leds::Out::Preview: preview = duty;                              break;
+    case leds::Out::Aux:     aux = duty / 4;                              break;   // aux LED is brighter
+    case leds::Out::All:     program = duty; preview = duty; aux = duty / 4; break;
+    case leds::Out::Off:                                                  break;
   }
-
-  if (actualType == "program") {
-    logger("---- " + actualType, "info");
-    ledcWrite(led_program, dutyCycle);
-    ledcWrite(led_preview, 0);
-    ledcWrite(led_aux, 0);
-  } else if (actualType == "preview") {
-    logger("---- " + actualType, "info");
-    ledcWrite(led_program, 0);
-    ledcWrite(led_preview, dutyCycle);
-    ledcWrite(led_aux, 0);
-  } else if (actualType == "aux") {
-    logger("---- " + actualType, "info");
-    ledcWrite(led_program, 0);
-    ledcWrite(led_preview, 0);
-    ledcWrite(led_aux, dutyCycle / 4);
-  } else {
-    ledcWrite(led_program, 0);
-    ledcWrite(led_preview, 0);
-    ledcWrite(led_aux, 0);
-  }
-#endif
+  ledcWrite(pinProgram, program);
+  ledcWrite(PIN_LED_PREVIEW, preview);
+  ledcWrite(PIN_LED_AUX, aux);
 }
 
-// Toggle external LEDs on/off (btnM5 double-click).
-// When disabled: all LEDs off immediately and stay off until re-enabled.
-// When re-enabled: externalLed() is called to restore correct tally state.
-void toggleLeds() {
-  ledsEnabled = !ledsEnabled;
-  logger("ledsEnabled: " + String(ledsEnabled), "info");
-  if (!ledsEnabled) {
-    ledcWrite(led_program, 0);
-    ledcWrite(led_preview, 0);
-    ledcWrite(led_aux, 0);
-  } else {
-    prevLedType = "__invalidated__";  // force externalLed() to reapply tally state
-    externalLed();
-    prevLedType = actualType;
+void apply() { write(testing ? testOut : (enabled_ ? tally : leds::Out::Off)); }
+
+const char *name(leds::Out out) {
+  switch (out) {
+    case leds::Out::Program: return "program";
+    case leds::Out::Preview: return "preview";
+    case leds::Out::Aux:     return "aux";
+    case leds::Out::All:     return "all";
+    default:                 return "off";
   }
-  // Repaint so LED status indicator updates on screen
-  repaintCurrentScreen();
 }
 
-// Recalculate dutyCycle from currentBrightness using a quadratic curve so
-// that equal brightness steps feel perceptually equal.
-void set_dutyCycle() {
-#if TALLY_EXTRA_OUTPUT
-  float norm = (float)(currentBrightness - START_BRIGHTNESS) /
-               (float)(MAX_BRIGHTNESS    - START_BRIGHTNESS);
+}  // namespace
+
+namespace leds {
+
+void begin(int programPin) {
+  pinProgram = programPin;
+  ledcAttach(pinProgram, LED_PWM_FREQ, LED_PWM_BITS);
+  ledcAttach(PIN_LED_PREVIEW, LED_PWM_FREQ, LED_PWM_BITS);
+  ledcAttach(PIN_LED_AUX, LED_PWM_FREQ, LED_PWM_BITS);
+  apply();
+}
+
+// Quadratic curve: equal brightness steps look equally big.
+void setBrightness(int percent) {
+  float norm = float(percent - BRIGHTNESS_MIN) / float(BRIGHTNESS_MAX - BRIGHTNESS_MIN);
   norm = constrain(norm, 0.0f, 1.0f);
-  dutyCycle = (int)(MIN_DUTY + (MAX_DUTY - MIN_DUTY) * norm * norm);
-#endif
+  duty = int(LED_MIN_DUTY + (LED_MAX_DUTY - LED_MIN_DUTY) * norm * norm);
+  apply();
 }
 
-// ----------------------------------------------------------------------------
-// Flash animation (white blink on "flash" socket event)
-// ----------------------------------------------------------------------------
-
-void flashTick() {
-  if (!flashActive) return;
-  unsigned long now = millis();
-  if (now - flashLastMs < FLASH_INTERVAL) return;
-  flashLastMs = now;
-
-  if (flashStep >= FLASH_COUNT) {
-    flashActive = false;
-    prevType = "__invalidated__";
-    switch (currentScreen) {
-      case 0: showDeviceInfo(); break;
-      case 1: showSettings();   break;
-    }
-    return;
-  }
-  m5_fillScreen((flashStep % 2 == 0) ? WHITE : TFT_BLACK);
-  flashStep++;
+void show(Out out) {
+  if (out == tally) return;
+  tally = out;
+  LOGI("LEDs: %s", name(out));
+  apply();
 }
 
-// ----------------------------------------------------------------------------
-// Reassign blink animation (red blink on device reassignment)
-// ----------------------------------------------------------------------------
-
-void reassignTick() {
-  if (!reassignActive) return;
-  unsigned long now = millis();
-  if (now - reassignLastMs < REASSIGN_INTERVAL) return;
-  reassignLastMs = now;
-
-  if (reassignStep >= REASSIGN_COUNT) {
-    reassignActive = false;
-    prevType = "__invalidated__";
-    switch (currentScreen) {
-      case 0: showDeviceInfo(); break;
-      case 1: showSettings();   break;
-    }
-    return;
-  }
-  m5_fillScreen((reassignStep % 2 == 0) ? (uint32_t)RED_COLOR : (uint32_t)TFT_BLACK);
-  reassignStep++;
+void setEnabled(bool on) {
+  enabled_ = on;
+  LOGI("LEDs %s", on ? "enabled" : "disabled");
+  apply();
 }
+
+bool enabled() { return enabled_; }
+
+void test(Out out) { testing = true; testOut = out; apply(); }
+void endTest()     { testing = false; apply(); }
+
+}  // namespace leds

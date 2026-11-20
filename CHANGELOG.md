@@ -6,6 +6,16 @@ All notable changes to GP Tally M5StickC are documented here.
 
 ## [4.6] — in development
 
+### Changed — rewrite
+- **One code base for all boards on M5Unified** — display, buttons, IMU and battery go through M5Unified / M5GFX; the board is detected at run time. Gone: the M5StickC / M5StickCPlus / M5StickCPlus2 libraries, MultiButton, `Free_Fonts.h`, the hardware abstraction layer and every per-board `#ifdef`.
+- **Modules instead of ~60 global variables** — `board`, `settings`, `net`, `tally`, `leds`, `ui`, `power`, each with its own state and a small interface; `main.cpp` only ties them together.
+- **Screen drawn from state** — any change marks the frame dirty and the whole frame is drawn off-screen and pushed at once (no flicker). Gone: `prevType = "__invalidated__"`, origin-screen bookkeeping for each animation, `showSettings()` / `showDeviceInfo()`.
+- **Tally as an enum** (program / preview / aux / other) with the bus colour, not string comparisons; bus list, device list and active buses kept as small tables.
+- **Settings** in one place (`settings`), saved only when changed; the TallyArbiter device id is now saved whenever the server assigns one.
+- **Logging** with `LOGI` / `LOGE` / `LOGD` (`-DVERBOSE` for debug).
+- **No connection attempt with the default server** `0.0.0.0` — the log says to set it in the portal.
+- Removed: `LAST_MSG` (messages are logged), `TALLY_EXTRA_OUTPUT` (LEDs always built in, switched with the M5 double click).
+
 ### Changed
 - **Build system migrated from Arduino IDE to PlatformIO** — `platformio.ini` with environments `m5stickc`, `m5stickc-plus`, `m5stickc-plus2` and matching `-ota` variants. ESP32 core, partition scheme and all library versions are pinned, so builds are reproducible without manual library installation.
 - **ESP32 platform** — pioarduino `55.03.313` (Arduino-ESP32 core 3.3.13).

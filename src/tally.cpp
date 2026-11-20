@@ -1,377 +1,329 @@
 // ============================================================================
-// tally.cpp — TallyArbiter Socket.IO communication and tally data processing
+// tally.cpp — TallyArbiter listener client
 //
-// Socket.IO v4 (Engine.IO v4, EIO=4) implemented directly over WebSocketsClient
-// (links2004/WebSockets). JSON parsing uses ArduinoJson v7.
+// Socket.IO v4 directly over WebSocketsClient (links2004/WebSockets):
+//   Engine.IO packet (first char): '0' open (ping timing), '2' ping -> reply '3',
+//                                  '4' message
+//   Socket.IO packet (second char): '0' connect, '2' event ["name", ...args]
 //
-// Socket.IO v4 wire protocol:
-//   Engine.IO packet types (first char):
-//     '0' — open (server sends session info incl. pingInterval / pingTimeout)
-//     '2' — ping  (server → client, we reply '3')
-//     '3' — pong
-//     '4' — message (contains Socket.IO packet)
-//   Socket.IO packet types (second char, inside '4...'):
-//     '0' — connect
-//     '2' — event  → payload is JSON array ["eventName", ...data]
+// The tally is recomputed from three pieces the server sends in any order:
+//   bus_options    bus id -> type, colour, priority
+//   device_states  which buses have sources on which device
+//   devices        device id -> name
+// The active bus with the highest priority wins.
 // ============================================================================
 
-#include "globals.h"
+#include "tally.h"
 
-// ============================================================================
-// Socket.IO connection
-// ============================================================================
+#include <ArduinoJson.h>
+#include <WebSocketsClient.h>
+#include <vector>
+#include "config.h"
+#include "log.h"
+#include "settings.h"
 
-// Liveness: the server pings every pingInterval; no packet for
+namespace {
+
+struct Bus {
+  String    id;
+  TallyKind kind;
+  uint32_t  rgb;
+  bool      hasColor;
+  int       priority;
+};
+
+struct Device {
+  String id;
+  String name;
+};
+
+WebSocketsClient    ws;
+String              listener;
+
+std::vector<Bus>    buses;
+std::vector<String> activeBuses;   // buses with sources on our device
+std::vector<Device> devices;
+
+TallyState st;
+String     name;
+bool       connected_  = false;
+uint32_t   changeCount = 0;
+bool       flashReq    = false;
+bool       reassignReq = false;
+
+// Liveness: the server pings every pingInterval; nothing for
 // pingInterval + pingTimeout means the link is dead even if TCP looks open.
-static unsigned long lastServerMsgMs  = 0;
-static unsigned long taPingIntervalMs = TA_PING_INTERVAL_MS;
-static unsigned long taPingTimeoutMs  = TA_PING_TIMEOUT_MS;
+uint32_t lastRxMs       = 0;
+uint32_t pingIntervalMs = TA_PING_INTERVAL_MS;
+uint32_t pingTimeoutMs  = TA_PING_TIMEOUT_MS;
 
-// Called once from setup(). WebSocketsClient reconnects by itself from then on
-// (calling begin() again on every retry restarted the connection mid-handshake).
-void connectToServer() {
-  logger("Connecting to Tally Arbiter: " + String(tallyarbiter_host) + ":" + String(tallyarbiter_port), "info");
-  socket.onEvent(wsEvent);
-  socket.setReconnectInterval(reconnectDelay);
-  socket.begin(tallyarbiter_host, atol(tallyarbiter_port), "/socket.io/?EIO=4&transport=websocket");
+// Backoff: a connect attempt can block up to 5 s while the server is away,
+// so the library's retry interval widens the longer TA stays unreachable.
+uint32_t retryMs      = TA_RETRY_MIN_MS;
+uint32_t retryCheckAt = 0;
+
+TallyKind kindOf(const char *type) {
+  if (!type || !*type)            return TallyKind::None;
+  if (!strcmp(type, "program"))   return TallyKind::Program;
+  if (!strcmp(type, "preview"))   return TallyKind::Preview;
+  if (!strcmp(type, "aux"))       return TallyKind::Aux;
+  return TallyKind::Other;
 }
 
-// Called every loop() pass.
-void taTick() {
-  const unsigned long now = millis();
+// "#rrggbb" -> 0xRRGGBB
+bool parseColor(const char *s, uint32_t &rgb) {
+  if (!s) return false;
+  if (*s == '#') s++;
+  if (strlen(s) != 6) return false;
+  for (int i = 0; i < 6; i++) if (!isxdigit((unsigned char)s[i])) return false;
+  rgb = strtoul(s, nullptr, 16);
+  return true;
+}
 
-  // Silent link (WiFi gone, server unplugged): drop it so the tally clears
-  // instead of showing a stale state.
-  if (taConnected && now - lastServerMsgMs > taPingIntervalMs + taPingTimeoutMs + TA_PING_MARGIN_MS) {
-    logger("No ping from Tally Arbiter for " + String((now - lastServerMsgMs) / 1000) + " s, disconnecting", "error");
-    socket.disconnect();
-    if (taConnected) onSocketDisconnect();   // in case the library raised no event
+void setReconnectInterval(uint32_t ms) {
+  retryMs = ms;
+  retryCheckAt = millis();
+  ws.setReconnectInterval(ms);
+}
+
+void emit(const char *event, JsonVariantConst payload = JsonVariantConst()) {
+  JsonDocument doc;
+  JsonArray msg = doc.to<JsonArray>();
+  msg.add(event);
+  if (!payload.isNull()) msg.add(payload);
+  String body;
+  serializeJson(doc, body);
+  String frame = "42" + body;
+  ws.sendTXT(frame);
+}
+
+void recompute() {
+  TallyState next;
+  bool found = false;
+  for (const String &id : activeBuses) {
+    for (const Bus &b : buses) {
+      if (b.id != id) continue;
+      if (!found || b.priority > next.priority) {
+        next  = { b.kind, b.rgb, b.hasColor, b.priority };
+        found = true;
+      }
+    }
+  }
+  if (next.kind == st.kind && next.rgb == st.rgb && next.hasColor == st.hasColor) return;
+  st = next;
+  changeCount++;
+  LOGI("Tally: %s (#%06lx, priority %d)", ta::kindName(st.kind), (unsigned long)st.rgb, st.priority);
+}
+
+void resolveName() {
+  const String &id = settings::get().deviceId;
+  for (const Device &d : devices) {
+    if (d.id != id) continue;
+    if (d.name != name) {
+      name = d.name;
+      changeCount++;
+      LOGI("Device: %s", name.c_str());
+    }
+    break;
+  }
+  settings::saveDevice(id, name);   // writes only what changed
+}
+
+void setDeviceId(const String &id) {
+  if (id == settings::get().deviceId) return;
+  settings::saveDevice(id, name);
+  activeBuses.clear();               // they belonged to the old device
+  recompute();
+  resolveName();
+}
+
+// ---------------------------------------------------------------------------
+// Socket.IO
+// ---------------------------------------------------------------------------
+
+void onOpen(const char *json) {
+  JsonDocument doc;
+  if (deserializeJson(doc, json)) return;
+  pingIntervalMs = doc["pingInterval"] | TA_PING_INTERVAL_MS;
+  pingTimeoutMs  = doc["pingTimeout"]  | TA_PING_TIMEOUT_MS;
+}
+
+void onConnect() {
+  LOGI("Connected to TallyArbiter");
+  JsonDocument p;
+  p["deviceId"]        = settings::get().deviceId;
+  p["listenerType"]    = listener;
+  p["canBeReassigned"] = true;
+  p["canBeFlashed"]    = true;
+  p["supportsChat"]    = true;
+  emit("listenerclient_connect", p.as<JsonVariantConst>());
+
+  connected_ = true;
+  lastRxMs   = millis();
+  setReconnectInterval(TA_RETRY_MIN_MS);
+  changeCount++;
+}
+
+void onDisconnect() {
+  if (connected_) LOGI("Disconnected from TallyArbiter");
+  connected_ = false;
+  buses.clear();
+  activeBuses.clear();
+  recompute();
+  retryCheckAt = millis();
+  changeCount++;
+}
+
+void onReassign(const String &oldId, const String &newId) {
+  LOGI("Reassign: %s -> %s", oldId.c_str(), newId.c_str());
+  JsonDocument p;
+  p["oldDeviceId"] = oldId;
+  p["newDeviceId"] = newId;
+  emit("listener_reassign_object", p.as<JsonVariantConst>());
+  emit("devices");
+  setDeviceId(newId);
+  reassignReq = true;
+}
+
+void onEvent(const char *json, size_t len) {
+  JsonDocument doc;
+  if (DeserializationError err = deserializeJson(doc, json, len)) {
+    LOGE("TallyArbiter JSON: %s", err.c_str());
     return;
   }
+  JsonArrayConst msg = doc.as<JsonArrayConst>();
+  const char *event = msg[0];
+  if (!event) return;
+  LOGD("Event %s", event);
 
-  // Backoff: each connect attempt can block up to 5 s while the server is away,
-  // so widen the library's retry interval the longer TA stays unreachable.
-  if (taConnected || !networkConnected) return;
-  if (now - lastReconnectAttempt < (unsigned long)reconnectDelay) return;
-  lastReconnectAttempt = now;
-  reconnectDelay = min(reconnectDelay * 2, RECONNECT_MAX_DELAY);
-  socket.setReconnectInterval(reconnectDelay);
-  logger("Tally Arbiter not reachable, next retry in " + String(reconnectDelay) + " ms", "info-quiet");
-}
+  if (!strcmp(event, "bus_options")) {
+    buses.clear();
+    for (JsonObjectConst b : msg[1].as<JsonArrayConst>()) {
+      Bus bus;
+      bus.id       = b["id"].as<String>();
+      bus.kind     = kindOf(b["type"]);
+      bus.rgb      = 0;
+      bus.hasColor = parseColor(b["color"], bus.rgb);
+      bus.priority = b["priority"] | 0;
+      buses.push_back(bus);
+    }
+    recompute();
 
-// Emit a Socket.IO event with optional JSON payload string
-void ws_emit(String event, const char *payload) {
-  String msg = "42[\"" + event + "\"";
-  if (payload) {
-    msg += ",";
-    msg += payload;
+  } else if (!strcmp(event, "device_states")) {
+    const String &id = settings::get().deviceId;
+    activeBuses.clear();
+    for (JsonObjectConst s : msg[1].as<JsonArrayConst>()) {
+      if (s["deviceId"].as<String>() != id) continue;
+      if (s["sources"].as<JsonArrayConst>().size() == 0) continue;
+      activeBuses.push_back(s["busId"].as<String>());
+    }
+    recompute();
+
+  } else if (!strcmp(event, "devices")) {
+    devices.clear();
+    for (JsonObjectConst d : msg[1].as<JsonArrayConst>())
+      devices.push_back({ d["id"].as<String>(), d["name"].as<String>() });
+    resolveName();
+
+  } else if (!strcmp(event, "deviceId")) {
+    setDeviceId(msg[1].as<String>());
+
+  } else if (!strcmp(event, "reassign")) {
+    onReassign(msg[1].as<String>(), msg[2].as<String>());
+
+  } else if (!strcmp(event, "flash")) {
+    flashReq = true;
+
+  } else if (!strcmp(event, "messaging")) {
+    // "server" messages are TallyArbiter's own notices (e.g. our previous
+    // session closing); chat from an operator is worth a line in the log.
+    const char *type = msg[1] | "";
+    if (!strcmp(type, "server")) LOGD("Server message: %s", msg[3] | "");
+    else                         LOGI("Message (%s): %s", type, msg[3] | "");
   }
-  msg += "]";
-  socket.sendTXT(msg);
 }
 
-// ============================================================================
-// WebSocket event handler — Engine.IO + Socket.IO dispatch
-// ============================================================================
-
-void wsEvent(WStype_t type, uint8_t *payload, size_t length) {
+void wsEvent(WStype_t type, uint8_t *payload, size_t len) {
   switch (type) {
-
     case WStype_DISCONNECTED:
-      onSocketDisconnect();
+      onDisconnect();
       break;
-
     case WStype_CONNECTED:
-      // WebSocket connected — send Socket.IO connect packet
-      socket.sendTXT("40");
+      ws.sendTXT("40");                       // Socket.IO connect
       break;
-
     case WStype_TEXT: {
-      String msg = (char *)payload;
-      if (msg.length() == 0) break;
-
-      char eioType = msg[0];
-      lastServerMsgMs = millis();
-
-      if (eioType == '0') {
-        // Engine.IO open — take the server's ping timing
-        JsonDocument open;
-        if (!deserializeJson(open, msg.c_str() + 1)) {
-          taPingIntervalMs = open["pingInterval"] | (unsigned long)TA_PING_INTERVAL_MS;
-          taPingTimeoutMs  = open["pingTimeout"]  | (unsigned long)TA_PING_TIMEOUT_MS;
-        }
-        break;
-      }
-
-      if (eioType == '2') {
-        // Engine.IO ping — reply with pong
-        socket.sendTXT("3");
-        break;
-      }
-
-      if (eioType == '4' && msg.length() > 1) {
-        char sioType = msg[1];
-
-        if (sioType == '0') {
-          // Socket.IO connect ACK
-          onSocketConnect();
-          break;
-        }
-
-        if (sioType == '2') {
-          // Socket.IO event
-          onSocketEvent(msg.substring(2));
-          break;
-        }
+      if (len == 0) break;
+      lastRxMs = millis();
+      const char *m = (const char *)payload;
+      if (m[0] == '0')      onOpen(m + 1);
+      else if (m[0] == '2') ws.sendTXT("3");  // pong
+      else if (m[0] == '4' && len > 1) {
+        if (m[1] == '0')      onConnect();
+        else if (m[1] == '2') onEvent(m + 2, len - 2);
       }
       break;
     }
-
     case WStype_ERROR:
-      logger("WebSocket error", "error");
+      LOGE("WebSocket error");
       break;
-
-
     default:
       break;
   }
 }
 
-// ============================================================================
-// Socket.IO application events
-// ============================================================================
+}  // namespace
 
-void onSocketConnect() {
-  logger("Connected to Tally Arbiter server.", "info");
-  logger("DeviceId: " + DeviceId, "info-quiet");
+namespace ta {
 
-  char deviceObj[256];
-  snprintf(deviceObj, sizeof(deviceObj),
-    "{\"deviceId\":\"%s\",\"listenerType\":\"%s\","
-    "\"canBeReassigned\":true,\"canBeFlashed\":true,\"supportsChat\":true}",
-    DeviceId.c_str(), listenerDeviceName.c_str());
-  ws_emit("listenerclient_connect", deviceObj);
-
-  taConnected     = true;
-  everConnected   = true;
-  lastServerMsgMs = millis();
-  reconnectDelay  = RECONNECT_BASE_DELAY;
-  lastReconnectAttempt = millis();
-  socket.setReconnectInterval(reconnectDelay);
-
-  if (currentScreen == 1 && !userRequestedSettings) {
-    switchToTally();
-  } else if (currentScreen == 1) {
-    paintSettingsScreen();
+void begin(const String &listenerName) {
+  listener = listenerName;
+  name     = settings::get().deviceName;
+  const Settings &s = settings::get();
+  if (!strcmp(s.taHost, TA_DEFAULT_HOST)) {
+    LOGI("TallyArbiter server not set (portal: Setup)");
+    return;
   }
+  LOGI("TallyArbiter: %s:%s", s.taHost, s.taPort);
+  ws.onEvent(wsEvent);
+  setReconnectInterval(TA_RETRY_MIN_MS);
+  ws.begin(s.taHost, atoi(s.taPort), "/socket.io/?EIO=4&transport=websocket");
 }
 
-void onSocketDisconnect() {
-  if (taConnected) logger("Disconnected from Tally Arbiter server.", "info");
-  lastReconnectAttempt = millis();
-  taConnected     = false;
-  busOptionsReady = false;
-  actualType      = "";
-  actualColor     = "";
-  actualPriority  = 0;
-  prevType        = "__invalidated__";
-  prevLedType     = "__invalidated__";
-#if TALLY_EXTRA_OUTPUT
-  externalLed();
-  prevLedType = actualType;
-#endif
+void loop(bool networkUp) {
+  ws.loop();
+  const uint32_t now = millis();
 
-  if (!everConnected) {
-    paintSettingsScreen();
-  } else {
-    if (currentScreen == 0) {
-      switchToSettings();
-    } else {
-      paintSettingsScreen();
-    }
-  }
-}
-
-void onSocketEvent(String raw) {
-  JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, raw);
-  if (err) {
-    logger("JSON parse error: " + String(err.c_str()), "error");
+  if (connected_ && now - lastRxMs > pingIntervalMs + pingTimeoutMs + TA_PING_MARGIN_MS) {
+    LOGE("No ping from TallyArbiter for %lu s, disconnecting", (unsigned long)((now - lastRxMs) / 1000));
+    ws.disconnect();
+    if (connected_) onDisconnect();   // in case the library raised no event
     return;
   }
 
-  if (!doc.is<JsonArray>() || doc.as<JsonArray>().size() < 1) return;
+  if (connected_ || !networkUp) return;
+  if (now - retryCheckAt < retryMs) return;
+  setReconnectInterval(min(retryMs * 2, TA_RETRY_MAX_MS));
+  LOGD("TallyArbiter unreachable, next retry in %lu ms", (unsigned long)retryMs);
+}
 
-  String eventType = doc[0].as<String>();
-  logger("Got event '" + eventType + "'", "info-quiet");
+void networkCameUp() { setReconnectInterval(TA_RETRY_MIN_MS); }
 
-  if (eventType == "bus_options") {
-    jBusOptions.clear();
-    jBusOptions.set(doc[1]);
-    busOptionsReady = true;
-    if (!jDeviceStates.isNull()) processTallyData();
+bool              connected()  { return connected_; }
+const TallyState &state()      { return st; }
+const String     &deviceName() { return name; }
+uint32_t          changes()    { return changeCount; }
 
-  } else if (eventType == "devices") {
-    jDevices.clear();
-    jDevices.set(doc[1]);
-    SetDeviceName();
+bool takeFlash()    { bool r = flashReq;    flashReq = false;    return r; }
+bool takeReassign() { bool r = reassignReq; reassignReq = false; return r; }
 
-  } else if (eventType == "device_states") {
-    jDeviceStates.clear();
-    jDeviceStates.set(doc[1]);
-    if (busOptionsReady) processTallyData();
-
-  } else if (eventType == "deviceId") {
-    DeviceId = doc[1].as<String>();
-    SetDeviceName();
-    if (!userRequestedSettings) switchToTally();
-
-  } else if (eventType == "reassign") {
-    socket_Reassign(doc[1].as<String>(), doc[2].as<String>());
-
-  } else if (eventType == "flash") {
-    socket_Flash();
-
-  } else if (eventType == "messaging") {
-    String msgType = doc[1].as<String>();
-    String msg     = doc[3].as<String>();
-    LastMessage = msgType + ": " + msg;
-    evaluateMode();
+const char *kindName(TallyKind kind) {
+  switch (kind) {
+    case TallyKind::Program: return "program";
+    case TallyKind::Preview: return "preview";
+    case TallyKind::Aux:     return "aux";
+    case TallyKind::Other:   return "other";
+    default:                 return "none";
   }
 }
 
-// ============================================================================
-// Flash animation trigger
-// ============================================================================
-
-void socket_Flash() {
-  flashActive = true;
-  flashStep   = 0;
-  flashLastMs = 0;
-}
-
-// ============================================================================
-// Reassign
-// ============================================================================
-
-void socket_Reassign(String oldDeviceId, String newDeviceId) {
-  logger("Reassign: " + oldDeviceId + " -> " + newDeviceId, "info");
-
-  char charReassignObj[256];
-  snprintf(charReassignObj, sizeof(charReassignObj),
-    "{\"oldDeviceId\":\"%s\",\"newDeviceId\":\"%s\"}",
-    oldDeviceId.c_str(), newDeviceId.c_str());
-  ws_emit("listener_reassign_object", charReassignObj);
-  ws_emit("devices", nullptr);
-
-  DeviceId = newDeviceId;
-  preferences.begin(PREF_NAMESPACE, false);
-  preferences.putString(PREF_DEVICE_ID, newDeviceId);
-  preferences.end();
-
-  // Clear tally state immediately — new device state unknown until device_states arrives
-  actualType     = "";
-  actualColor    = "";
-  actualPriority = 0;
-  prevType       = "__invalidated__";
-  prevLedType    = "__invalidated__";
-#if TALLY_EXTRA_OUTPUT
-  externalLed();
-  prevLedType = actualType;
-#endif
-
-  SetDeviceName();
-
-  reassignActive = true;
-  reassignStep   = 0;
-  reassignLastMs = 0;
-}
-
-// ============================================================================
-// Tally data processing
-// ============================================================================
-
-void processTallyData() {
-  bool   typeChanged     = false;
-  int    highestPriority = -1;
-  String highestType     = "";
-  String highestColor    = "";
-  int    highestPrioVal  = 0;
-
-  JsonArray states = jDeviceStates.as<JsonArray>();
-  for (JsonObject state : states) {
-    if (state["deviceId"].as<String>() != DeviceId) continue;
-
-    JsonArray sources = state["sources"].as<JsonArray>();
-    if (sources.size() == 0) continue;
-
-    typeChanged = true;
-    String busId = state["busId"].as<String>();
-
-    String busType, busColor;
-    int    busPrio = 0;
-    getBusInfo(busId, busType, busColor, busPrio);
-
-    if (busPrio > highestPriority) {
-      highestPriority = busPrio;
-      highestType     = busType;
-      highestColor    = busColor;
-      highestPrioVal  = busPrio;
-    }
-  }
-
-  if (typeChanged) {
-    actualType     = highestType;
-    actualColor    = highestColor;
-    actualPriority = highestPrioVal;
-  } else {
-    actualType     = "";
-    actualColor    = "";
-    actualPriority = 0;
-  }
-
-  if (typeChanged && currentScreen == 1 && !userRequestedSettings) {
-    switchToTally();
-    return;
-  }
-
-  evaluateMode();
-}
-
-void getBusInfo(const String &busId, String &outType, String &outColor, int &outPriority) {
-  outType     = "";
-  outColor    = "";
-  outPriority = 0;
-
-  JsonArray buses = jBusOptions.as<JsonArray>();
-  for (JsonObject bus : buses) {
-    if (bus["id"].as<String>() == busId) {
-      outType     = bus["type"].as<String>();
-      outColor    = bus["color"].as<String>();
-      outPriority = bus["priority"].as<int>();
-      return;
-    }
-  }
-}
-
-// ============================================================================
-// Device name lookup
-// ============================================================================
-
-void SetDeviceName() {
-  JsonArray devices = jDevices.as<JsonArray>();
-  for (JsonObject dev : devices) {
-    if (dev["id"].as<String>() == DeviceId) {
-      DeviceName = dev["name"].as<String>();
-      break;
-    }
-  }
-
-  preferences.begin(PREF_NAMESPACE, false);
-  preferences.putString(PREF_DEVICE_NAME, DeviceName);
-  preferences.end();
-
-  logger("DeviceName: " + DeviceName, "info");
-  prevType = "__invalidated__";
-  evaluateMode();
-}
+}  // namespace ta

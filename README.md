@@ -34,7 +34,7 @@ Based on the original [m5stickc-listener](https://github.com/josephdadams/TallyA
 | M5StickC-Plus | `m5stickc-plus` |
 | M5StickC-Plus2 | `m5stickc-plus2` |
 
-Each environment selects the matching board definition from `boards/` and the matching M5Stack library. Manual override defines are available in `include/board.h` if needed.
+Each environment selects the matching board definition from `boards/` (flash size, PSRAM). The board itself is detected at run time.
 
 ---
 
@@ -144,22 +144,23 @@ pio run -e m5stickc-plus2-ota -t upload --upload-port 192.168.1.50
 ## Project Structure
 
 ```
-platformio.ini         — build environments, ESP32 core and library versions
-boards/                — board definitions for StickC / Plus / Plus2
+platformio.ini      — build environments, ESP32 core and library versions
+boards/             — board definitions for StickC / Plus / Plus2 (flash size, PSRAM)
 include/
-├── board.h            — board detection and M5Stack library includes
-├── config.h           — all #define constants and NVS preference keys
-└── globals.h          — shared globals (extern) and function prototypes
+├── config.h        — pins, colours, timing, network constants, NVS keys
+└── log.h           — LOGI / LOGE / LOGD
 src/
-├── main.cpp           — global definitions, setup(), loop()
-├── screen.cpp         — screen state management and painting
-├── buttons.cpp        — brightness OSD, LED check, reset button
-├── tally.cpp          — Socket.IO events and tally data processing
-├── network.cpp        — Wi-Fi, WifiManager, reconnection
-├── leds.cpp           — external LED control and animations
-├── power.cpp          — CPU performance mode and battery cache
-└── m5hal.cpp          — M5Stack hardware abstraction layer
+├── main.cpp        — setup() / loop(): ties the modules together
+├── board.*         — which StickC this is (detected at run time), listener name
+├── settings.*      — everything kept in NVS
+├── net.*           — Wi-Fi, WiFiManager setup AP / web config, OTA
+├── tally.*         — TallyArbiter client (Socket.IO) -> tally state
+├── leds.*          — external tally LEDs
+├── ui.*            — display, buttons, animations
+└── power.*         — battery, CPU clock
 ```
+
+One firmware source for all three boards: M5Unified detects the board at run time, so the code has no per-board `#ifdef`s.
 
 Older versions built with the Arduino IDE are available as git tags `v4.5.1`, `v4.5.2`, `v4.5.3`.
 
