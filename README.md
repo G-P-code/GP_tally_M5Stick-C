@@ -1,6 +1,6 @@
 # GP Tally M5StickC
 
-A PlatformIO / Arduino firmware for the [M5StickC, M5StickC-Plus, and M5StickC-Plus2](https://m5stack.com) that turns the device into a wireless tally light listener client for [TallyArbiter](https://github.com/josephdadams/TallyArbiter).
+A PlatformIO / Arduino firmware for the [M5StickC and M5StickC-Plus](https://m5stack.com) that turns the device into a wireless tally light listener client for [TallyArbiter](https://github.com/josephdadams/TallyArbiter).
 
 Based on the original [m5stickc-listener](https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/m5stickc-listener) by Joseph Adams.
 
@@ -32,7 +32,6 @@ Based on the original [m5stickc-listener](https://github.com/josephdadams/TallyA
 |---|---|
 | M5StickC | `m5stickc` |
 | M5StickC-Plus | `m5stickc-plus` |
-| M5StickC-Plus2 | `m5stickc-plus2` |
 
 Each environment selects the matching board definition from `boards/` (flash size, PSRAM). The board itself is detected at run time.
 
@@ -43,9 +42,9 @@ Each environment selects the matching board definition from `boards/` (flash siz
 The project is built with [PlatformIO](https://platformio.org) — either the **PlatformIO IDE** extension for VS Code or the `pio` command line. All libraries, the ESP32 core and the partition scheme are defined in `platformio.ini` and installed automatically; nothing needs to be installed by hand. See [REQUIREMENTS.md](REQUIREMENTS.md) for the exact versions.
 
 ```sh
-pio run                                   # build all three boards
-pio run -e m5stickc-plus2                 # build one board
-pio run -e m5stickc-plus2 -t upload       # build + flash over USB
+pio run                                   # build both boards
+pio run -e m5stickc-plus                 # build one board
+pio run -e m5stickc-plus -t upload       # build + flash over USB
 pio device monitor                        # serial monitor (115200)
 ```
 
@@ -109,11 +108,11 @@ Whenever the device is on the network, the configuration web portal is available
 
 ## External LED Wiring (optional)
 
-| Signal | Pin | Pin (Plus2) |
-|---|---|---|
-| Program | G0 | G19 |
-| Preview | G26 | G26 |
-| Aux | G25 | G25 |
+| Signal | Pin |
+|---|---|
+| Program | G0 |
+| Preview | G26 |
+| Aux | G25 |
 
 LED brightness tracks the display brightness setting. LEDs can be toggled on/off at runtime with a double click on the M5 button without affecting the tally display.
 
@@ -131,7 +130,7 @@ LED brightness tracks the display brightness setting. LEDs can be toggled on/off
 Use the matching `-ota` environment and pass the device IP address:
 
 ```sh
-pio run -e m5stickc-plus2-ota -t upload --upload-port 192.168.1.50
+pio run -e m5stickc-plus-ota -t upload --upload-port 192.168.1.50
 ```
 
 - Hostname: `m5StickC-plus-xxxxxx`
@@ -143,7 +142,7 @@ pio run -e m5stickc-plus2-ota -t upload --upload-port 192.168.1.50
 
 ```
 platformio.ini      — build environments, ESP32 core and library versions
-boards/             — board definitions for StickC / Plus / Plus2 (flash size, PSRAM)
+boards/             — board definitions for StickC / StickC-Plus
 include/
 ├── config.h        — pins, colours, timing, network constants, NVS keys
 └── log.h           — LOGI / LOGE / LOGD
@@ -158,7 +157,7 @@ src/
 └── power.*         — battery, CPU clock
 ```
 
-One firmware source for all three boards: M5Unified detects the board at run time, so the code has no per-board `#ifdef`s.
+One firmware source for both boards: M5Unified detects the board at run time, so the code has no per-board `#ifdef`s.
 
 Older versions built with the Arduino IDE are available as git tags `v4.5.1`, `v4.5.2`, `v4.5.3`.
 

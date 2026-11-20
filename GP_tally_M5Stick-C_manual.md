@@ -51,7 +51,7 @@ Connect LEDs to the following GPIO pins:
 
 | Signal | Pin |
 |---|---|
-| Program | G0 (G19 on Plus2) |
+| Program | G0 |
 | Preview | G26 |
 | Aux | G25 |
 
@@ -112,7 +112,7 @@ Pieslēdz LED pie šādiem GPIO kontaktiem:
 
 | Signāls | Kontakts |
 |---|---|
-| Program | G0 (G19 uz Plus2) |
+| Program | G0 |
 | Preview | G26 |
 | Aux | G25 |
 

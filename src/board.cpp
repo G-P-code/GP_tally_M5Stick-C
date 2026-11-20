@@ -8,22 +8,15 @@ namespace {
 const char *model_   = "M5StickC";
 String      name_;
 char        suffix_[7] = "";
-int         ledProgram_ = PIN_LED_PROGRAM;
 }  // namespace
 
 namespace board {
 
 void begin() {
   const char *prefix = "m5StickC-";
-  switch (M5.getBoard()) {
-    case m5::board_t::board_M5StickCPlus2:
-      model_ = "M5StickC-Plus2"; prefix = "m5StickC-plus2-"; ledProgram_ = PIN_LED_PROGRAM_P2;
-      break;
-    case m5::board_t::board_M5StickCPlus:
-      model_ = "M5StickC-Plus";  prefix = "m5StickC-plus-";
-      break;
-    default:
-      break;
+  if (M5.getBoard() == m5::board_t::board_M5StickCPlus) {
+    model_ = "M5StickC-Plus";
+    prefix = "m5StickC-plus-";
   }
   // Last three bytes of the WiFi MAC: the listener identity TallyArbiter knows.
   uint8_t mac[6];
@@ -35,7 +28,5 @@ void begin() {
 const char   *model()            { return model_; }
 const String &listenerName()     { return name_; }
 const char   *idSuffix()         { return suffix_; }
-int           ledProgramPin()    { return ledProgram_; }
-const char   *ledProgramPinName() { return ledProgram_ == PIN_LED_PROGRAM_P2 ? "G19" : "G0"; }
 
 }  // namespace board

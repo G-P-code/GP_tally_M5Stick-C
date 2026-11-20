@@ -198,16 +198,15 @@ void renderLines(Gfx &g, uint16_t bg, uint16_t fg, std::initializer_list<String>
 }
 
 void renderLedCheck(Gfx &g) {
-  const String prog = board::ledProgramPinName();
-  struct { uint16_t bg, fg; const char *label; String pins; } s[LED_CHECK_STEPS] = {
-    { TFT_RED,       TFT_WHITE,  "PROGRAM", prog },
+  struct { uint16_t bg, fg; const char *label, *pins; } s[LED_CHECK_STEPS] = {
+    { TFT_RED,       TFT_WHITE,  "PROGRAM", "G0" },
     { TFT_DARKGREEN, TFT_WHITE,  "PREVIEW", "G26" },
     { TFT_NAVY,      TFT_YELLOW, "AUX",     "G25" },
-    { TFT_DARKGREY,  TFT_WHITE,  "ALL ON",  prog + "+G26+G25" },
+    { TFT_DARKGREY,  TFT_WHITE,  "ALL ON",  "G0+G26+G25" },
   };
   renderLines(g, s[step].bg, s[step].fg,
               { "-- LED CHECK --", "Step " + String(step + 1) + "/" + String(LED_CHECK_STEPS), "",
-                s[step].label, "Pin: " + s[step].pins });
+                s[step].label, String("Pin: ") + s[step].pins });
 }
 
 void render() {

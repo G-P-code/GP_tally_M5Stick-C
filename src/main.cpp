@@ -1,5 +1,5 @@
 // ============================================================================
-// GP Tally — TallyArbiter listener for M5StickC / StickC-Plus / StickC-Plus2
+// GP Tally — TallyArbiter listener for M5StickC / StickC-Plus
 //
 // Based on the m5stickc-listener by Joseph Adams:
 // https://github.com/josephdadams/TallyArbiter/tree/master/listener_clients/m5stickc-listener
@@ -52,7 +52,7 @@ void setup() {
 
   settings::load();
   power::begin();
-  leds::begin(board::ledProgramPin());
+  leds::begin(PIN_LED_PROGRAM);
   ui::begin();
   net::begin(board::listenerName());
   ta::begin(board::listenerName());

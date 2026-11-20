@@ -13,7 +13,5 @@ void begin();                     // after M5.begin()
 const char   *model();            // "M5StickC-Plus"
 const String &listenerName();     // "m5StickC-plus-5400ec": TA listener type, hostname, AP SSID
 const char   *idSuffix();         // "5400ec"
-int           ledProgramPin();
-const char   *ledProgramPinName(); // "G0" / "G19"
 
 }  // namespace board

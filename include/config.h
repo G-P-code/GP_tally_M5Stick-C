@@ -8,13 +8,12 @@
 #define FW_VERSION "4.6"
 
 // ----------------------------------------------------------------------------
-// Pins (same on StickC, StickC-Plus and StickC-Plus2 unless noted)
+// Pins (same on StickC and StickC-Plus)
 // ----------------------------------------------------------------------------
 constexpr int PIN_TRIGGER        = 33;  // grove: short press = setup AP, hold = erase WiFi
 constexpr int PIN_LED_PREVIEW    = 26;
 constexpr int PIN_LED_AUX        = 25;
-constexpr int PIN_LED_PROGRAM    = 0;   // StickC / StickC-Plus
-constexpr int PIN_LED_PROGRAM_P2 = 19;  // StickC-Plus2 (also its built-in LED)
+constexpr int PIN_LED_PROGRAM    = 0;
 
 // ----------------------------------------------------------------------------
 // External LED PWM

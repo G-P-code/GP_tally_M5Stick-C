@@ -24,7 +24,7 @@ The official `platformio/espressif32` platform only ships Arduino-ESP32 core 2.x
 
 | Library | Version | Purpose |
 |---|---|---|
-| m5stack/M5Unified | 0.3.0 | display, buttons, IMU, battery — all three boards |
+| m5stack/M5Unified | 0.3.0 | display, buttons, IMU, battery — both boards |
 | m5stack/M5GFX | 0.3.0 | graphics (used by M5Unified) |
 | links2004/WebSockets | 2.7.2 | TallyArbiter connection |
 | bblanchon/ArduinoJson | 7.4.3 | TallyArbiter messages |
@@ -43,7 +43,7 @@ Via the built-in web portal:
 Via PlatformIO:
 
 ```sh
-pio run -e m5stickc-plus2-ota -t upload --upload-port <device-ip>
+pio run -e m5stickc-plus-ota -t upload --upload-port <device-ip>
 ```
 
 - Hostname: `m5StickC-plus-xxxxxx`
