@@ -49,8 +49,7 @@
 #define TA_PING_MARGIN_MS      5000  // extra slack before a silent link counts as dead
 #define WIFI_POWER_SAVE_RSSI    -50  // dBm — use low TX power above this RSSI
 #define WIFI_POWER_HYSTERESIS    10  // dB — back to full power below RSSI - this
-#define WIFI_RETRY_GRACE_MS    5000  // leave a drop to the core's auto-reconnect this long
-#define WIFI_RETRY_MS         10000  // then kick the station this often
+#define WIFI_RETRY_MS         10000  // restart a station the setup AP switched off, at most this often
 #define WIFI_AP_AFTER_MS      20000  // no network this long -> open the setup AP
 #define SETUP_AP_MANUAL_TIMEOUT_S 120  // setup AP opened with G33 closes after this (s)
 

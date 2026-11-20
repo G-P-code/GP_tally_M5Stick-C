@@ -11,8 +11,9 @@
 //  * Station state comes from the core's event bits (connected AND has IP),
 //    not WiFi.status(): after some disconnect reasons status() stays at
 //    WL_CONNECTED for minutes and nothing ever reconnects.
-//  * The core's own auto-reconnect can stall after a deauth, so a drop that
-//    outlasts WIFI_RETRY_GRACE_MS is kicked by hand every WIFI_RETRY_MS.
+//  * Reconnecting is the core's auto-reconnect. Only when opening the setup AP
+//    switched the station off is it started again, so a returning network is
+//    still noticed and the AP closes by itself.
 //  * A phone on the setup AP gets the radio: WiFiManager's network scan fails
 //    while the station is trying to connect (the portal then lists no networks).
 //  * Web portal (startWebPortal) and setup AP portal (startConfigPortal) both
@@ -253,12 +254,15 @@ void networkTick() {
   }
 
   if (!staUp) {
-    // Kick the station when the core's own reconnect did not make it.
-    if (!noCreds && !retryPaused &&
-        now - staDownSince > WIFI_RETRY_GRACE_MS &&
+    // Reconnecting is left to the core's auto-reconnect. The one exception:
+    // opening the setup AP without a network switches the station off
+    // (WiFiManager), and then nothing would notice the network coming back.
+    const bool staOn = WiFi.getMode() & WIFI_MODE_STA;
+    if (!noCreds && !retryPaused && !staOn &&
         (lastWifiKick == 0 || now - lastWifiKick > WIFI_RETRY_MS)) {
       lastWifiKick = now;
-      WiFi.begin();                             // also re-enables STA if the portal switched it off
+      logger("Station was off, starting it again", "info");
+      WiFi.begin();
     }
     // No network for a while: offer the setup AP (station keeps trying).
     if (!apUp && !apSuppressed && (noCreds || now - staDownSince > WIFI_AP_AFTER_MS)) openSetupAp(false);
