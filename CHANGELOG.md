@@ -4,7 +4,7 @@ All notable changes to GP Tally M5StickC are documented here.
 
 ---
 
-## [4.7] — in development
+## [4.7] — 2026-11-20
 
 ### Fixed
 - **Reassign with TallyArbiter 3.3** — since TallyArbiter 3.3.0 the server accepts `listener_reassign_object` only from a logged-in producer, so after a reassign from the TallyArbiter page the listener showed the new device name but stayed in the old device's room: no tally, and the server still listed it on the old device until a restart. The listener now reconnects with the new device id instead (about 1 s, the screen stays on the tally), which works with every TallyArbiter version.
