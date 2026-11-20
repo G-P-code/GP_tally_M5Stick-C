@@ -15,8 +15,8 @@ All notable changes to GP Tally M5StickC are documented here.
 
 ### Added
 - **Device name fits the screen** — the tally name is drawn in the largest FreeSans (24/18/12/9 pt) that fits the width, centred, on all boards. On the M5StickC it was the tiny built-in font.
-- **Readable name on any tally colour** — name and device id are white on dark backgrounds and black on light ones (perceived luminance), instead of always black.
-- **M5StickC Settings screen** — 16 px font instead of 6×8 px; the TallyArbiter server is on one `TA:` line.
+- **Readable name on any tally colour** — on an active tally the name is a lighter shade of the tally colour on dark backgrounds and a darker shade on light ones (`TALLY_NAME_CONTRAST`, 55 %), and the device id only a faint shade (`TALLY_ID_CONTRAST`, 25 %), instead of always black.
+- **M5StickC Settings screen** — 16 px font instead of 6×8 px; the TallyArbiter server is on one `TA:` line, and a line too wide for 160 px (usually that one) drops to the 8 px font instead of wrapping, so the battery and version line stays on screen.
 - **Close the setup AP from the device** — M5 button long press (or **Exit** in the portal). Closed without a network, the AP stays closed until the network has been back once.
 
 ### Changed

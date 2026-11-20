@@ -223,6 +223,7 @@ void m5_setRotation(uint_fast8_t rotation);
 void m5_println();
 void m5_println(const String &s);
 void m5_println(const char c[]);
+void m5_printlnFit(const String &s);
 void m5_print(const char str[]);
 void m5_setTextColor(uint16_t color);
 void m5_setTextColor(uint16_t fgcolor, uint16_t bgcolor);

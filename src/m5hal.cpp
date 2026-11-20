@@ -112,6 +112,23 @@ void m5_println(const char c[]) {
 #endif
 }
 
+// Settings-screen line. StickC (160 px): a line too wide for the 16 px font
+// is printed in the 8 px font instead of wrapping (a wrap pushes the battery
+// line off the 80 px screen). Other boards: plain println.
+void m5_printlnFit(const String &s) {
+#if defined(STICK_C)
+  if (M5.Lcd.textWidth(s) > M5.Lcd.width()) {
+    M5.Lcd.setTextFont(1);
+    M5.Lcd.setCursor(0, M5.Lcd.getCursorY() + 4);   // centre the 8 px line in a 16 px row
+    M5.Lcd.println(s);
+    M5.Lcd.setCursor(0, M5.Lcd.getCursorY() + 4);
+    M5.Lcd.setTextFont(2);
+    return;
+  }
+#endif
+  m5_println(s);
+}
+
 void m5_print(const char str[]) {
 #if defined(STICK_C_PLUS2)
   StickCP2.Display.print(str);

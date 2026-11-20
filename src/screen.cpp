@@ -22,36 +22,36 @@ void paintSettingsScreen() {
     // Setup AP is up: show how to reach it
     m5_setTextColor(YELLOW, BLACK);
 #if defined(STICK_C)
-    m5_println("AP: " + listenerDeviceName);        // 160 px wide
+    m5_printlnFit("AP: " + listenerDeviceName);        // 160 px wide
 #else
-    m5_println("Setup AP: " + listenerDeviceName);
+    m5_printlnFit("Setup AP: " + listenerDeviceName);
 #endif
-    m5_println("http://" + apIP.toString());
+    m5_printlnFit("http://" + apIP.toString());
     m5_setTextColor(WHITE, BLACK);
   } else if (stationUp()) {
-    m5_println("SSID: " + String(WiFi.SSID()));
-    m5_println(WiFi.localIP().toString());
+    m5_printlnFit("SSID: " + String(WiFi.SSID()));
+    m5_printlnFit(WiFi.localIP().toString());
   } else {
-    m5_println("SSID: " + String(WiFi.SSID()));
+    m5_printlnFit("SSID: " + String(WiFi.SSID()));
     m5_setTextColor(RED_COLOR);
-    m5_println("No WiFi - retrying...");
+    m5_printlnFit("No WiFi - retrying...");
     m5_setTextColor(WHITE, BLACK);
   }
 #if defined(STICK_C)
   // 160x80 holds 5 lines of the 16 px font: server on one line
-  m5_println("TA: " + String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
+  m5_printlnFit("TA: " + String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
 #else
-  m5_println("Tally Arbiter Server:");
-  m5_println(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
+  m5_printlnFit("Tally Arbiter Server:");
+  m5_printlnFit(String(tallyarbiter_host) + ":" + String(tallyarbiter_port));
 #endif
 
   if (taConnected) {
     m5_setTextColor(GREENYELLOW);
-    m5_println("Connected.");
+    m5_printlnFit("Connected.");
     m5_setTextColor(WHITE, BLACK);
   } else {
     m5_setTextColor(RED_COLOR);
-    m5_println("Not connected!");
+    m5_printlnFit("Not connected!");
     m5_setTextColor(WHITE, BLACK);
   }
 
@@ -111,10 +111,15 @@ void switchToTally() {
 void showSettings()   { switchToSettings(false); }
 void showDeviceInfo() { switchToTally(); }
 
-// Black or white, whichever reads better on this background
-// (perceived luminance, ITU-R BT.601 weights).
-static uint16_t textColorOn(int r, int g, int b) {
-  return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? (uint16_t)TFT_BLACK : (uint16_t)TFT_WHITE;
+// Text colour on a tally background: a shade of the background itself,
+// pct % of the way to white on dark colours or to black on light ones
+// (perceived luminance, ITU-R BT.601 weights) — readable without glaring.
+static uint16_t textColorOn(int r, int g, int b, int pct) {
+  const bool dark = (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  const int  to   = dark ? 255 : 0;
+  return m5_color565(r + (to - r) * pct / 100,
+                     g + (to - g) * pct / 100,
+                     b + (to - b) * pct / 100);
 }
 
 void evaluateMode() {
@@ -147,7 +152,7 @@ void evaluateMode() {
     if (actualType != "" && validColor) {
       uint16_t bgColor = m5_color565(r, g, b);
       m5_fillScreen(bgColor);
-      m5_drawDeviceName(DeviceName, textColorOn(r, g, b), bgColor);
+      m5_drawDeviceName(DeviceName, textColorOn(r, g, b, TALLY_NAME_CONTRAST), bgColor);
     } else {
       m5_fillScreen(TFT_BLACK);
       m5_drawDeviceName(DeviceName, DARKGREY, TFT_BLACK);
@@ -173,13 +178,13 @@ void evaluateMode() {
     // because evaluateMode() is only called after prevType changes, not during OSD).
     if (!brightnessOsdActive) {
       configureDisplayToCheckReset();
-      // Active tally: same text colour as DeviceName on the tally colour.
+      // Active tally: a faint shade of the tally colour.
       // No signal: very dark grey on black — present but unobtrusive.
       // suffix is always exactly 6 hex chars after setup() padding fix
       String idStr = listenerDeviceName.substring(listenerDeviceName.length() - 6) + "   ";
       uint16_t idFg, idBg;
       if (actualType != "" && validColor) {
-        idFg = textColorOn(r, g, b);
+        idFg = textColorOn(r, g, b, TALLY_ID_CONTRAST);
         idBg = m5_color565(r, g, b);
       } else {
         idFg = 0x2104;   // very dark grey

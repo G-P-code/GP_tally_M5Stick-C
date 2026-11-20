@@ -11,6 +11,11 @@
 #define GREY      0x0020
 #define RED_COLOR 0xF800
 
+// Text on an active tally colour: a lighter (dark background) or darker
+// (light background) shade of that colour, this % of the way to white/black.
+#define TALLY_NAME_CONTRAST  55   // device name
+#define TALLY_ID_CONTRAST    25   // device id in the corner — barely there
+
 // ============================================================================
 // Brightness
 // ============================================================================
