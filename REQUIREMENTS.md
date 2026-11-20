@@ -22,19 +22,13 @@ The official `platformio/espressif32` platform only ships Arduino-ESP32 core 2.x
 
 ## Libraries
 
-| Library | Version | Used by |
+| Library | Version | Purpose |
 |---|---|---|
-| links2004/WebSockets | 2.7.2 | all |
-| bblanchon/ArduinoJson | 7.4.3 | all |
-| tzapu/WiFiManager | 2.0.17 | all |
-| poelstra/MultiButton | 1.3.0 | all |
-| m5stack/M5StickC | 0.3.0 (from GitHub) | `m5stickc` |
-| m5stack/M5StickCPlus | 0.1.1 | `m5stickc-plus` |
-| m5stack/M5StickCPlus2 | 1.0.2 (+ M5Unified / M5GFX) | `m5stickc-plus2` |
-
-Each environment pulls in only its own M5Stack library, so the `multiple definition of 'M5'` conflict from the Arduino IDE cannot happen.
-
-M5StickC 0.3.0 is not published on the PlatformIO registry (the registry stops at 0.2.5, which does not compile on core 3.x), so it is fetched from the GitHub tag.
+| m5stack/M5Unified | 0.3.0 | display, buttons, IMU, battery — both boards |
+| m5stack/M5GFX | 0.3.0 | graphics (used by M5Unified) |
+| links2004/WebSockets | 2.7.2 | TallyArbiter connection |
+| bblanchon/ArduinoJson | 7.4.3 | TallyArbiter messages |
+| tzapu/WiFiManager | 2.0.17 | setup AP, web config, firmware update page |
 
 ---
 
@@ -42,15 +36,15 @@ M5StickC 0.3.0 is not published on the PlatformIO registry (the registry stops a
 
 Via the built-in web portal:
 
-1. Open the Settings screen on the device (M5 button single click)
-2. Navigate to the device IP address shown on screen from any browser on the same network
-3. Go to **Update** in the portal menu and upload `.pio/build/<env>/firmware.bin`
+1. Find the device IP on the Settings screen (M5 button single click)
+2. Open that address in any browser on the same network (login `admin` / `tally`)
+3. Go to **Update** in the portal menu and upload `release/GP_tally_M5StickC_v<ver>.bin` (not the `_full` file)
 
 Via PlatformIO:
 
 ```sh
-pio run -e m5stickc-plus2-ota -t upload --upload-port <device-ip>
+pio run -e m5stickc-ota -t upload --upload-port <device-ip>
 ```
 
-- Hostname: `m5StickC-plus-xxxxxx`
+- Hostname: `m5StickC-xxxxxx` / `m5StickC-plus-xxxxxx`
 - Password: `tallyarbiter`

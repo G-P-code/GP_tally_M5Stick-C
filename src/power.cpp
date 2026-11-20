@@ -1,67 +1,54 @@
-// ============================================================================
-// power.cpp — CPU performance mode and battery info cache
-// ============================================================================
+#include "power.h"
 
-#include "globals.h"
+#include <M5Unified.h>
+#include "config.h"
 
-// Switch CPU between 80 MHz (idle/power-save) and 160 MHz (active).
-void setPerformanceMode(bool high) {
-  static bool currentMode = false;
-  if (high == currentMode) return;
-  setCpuFrequencyMhz(high ? 160 : 80);
-  currentMode = high;
-}
+namespace {
 
-// Read battery state into batteryCache every BATTERY_UPDATE_INTERVAL ms.
-// The cache is used by paintSettingsScreen() to avoid blocking I²C reads
-// during screen paint. If the value changes while the settings screen is
-// open, paintSettingsScreen() is called to reflect the update immediately.
-void updateBatteryInfo() {
-  unsigned long now = millis();
-  if (now - batteryCache.lastRead < BATTERY_UPDATE_INTERVAL) return;
-  batteryCache.lastRead = now;
+power::Battery batt;
+uint32_t       changeCount = 0;
+uint32_t       readAt      = 0;
+bool           fast        = true;   // forces the first setCpuFrequencyMhz()
 
-  // Snapshot previous state to detect changes
-  int  prevLevel      = batteryCache.level;
-  bool prevCharging   = batteryCache.isCharging;
-  bool prevCharged    = batteryCache.isCharged;
-
-#if defined(STICK_C_PLUS2)
-  // getBatteryVoltage() returns millivolts on Plus2.
-  // Usable Li-ion range: 3000 mV (empty) – 4200 mV (full).
-  float voltage_mv = StickCP2.Power.getBatteryVoltage();
-  float batCurrent = StickCP2.Power.getBatteryCurrent();
-  batteryCache.isCharging = (batCurrent > 0);
-  batteryCache.isCharged  = (!batteryCache.isCharging && StickCP2.Power.isCharging());
-  int raw = (int)(100.0f * (voltage_mv - 3000.0f) / (4200.0f - 3000.0f));
-#else
-  // GetBatVoltage() returns volts on AXP192 (StickC / StickC-Plus).
-  // Usable range: 3.0 V (empty) – 4.2 V (full).
-  //
-  // AXP192 charging state detection:
-  //   GetBatCurrent() is unreliable at high SoC — returns 0 even while charging.
-  //   GetVinVoltage() > 3.0 V reliably indicates USB is connected.
-  //   Strategy: USB present + level < 95 → Charging
-  //             USB present + level >= 95 → Charged.
-  float voltage    = M5.Axp.GetBatVoltage();
-  // M5StickC-Plus uses VBUS (not VIN) for USB power — GetVinVoltage() always
-  // returns 0. GetVBusVoltage() > 3.0 V reliably indicates USB is connected.
-  bool  usbPresent = (M5.Axp.GetVBusVoltage() > 3.0f);
-  int raw = (int)(100.0f * (voltage - 3.0f) / (4.2f - 3.0f));
-  int  soc = constrain(raw, 0, 100);
-  batteryCache.isCharging = (usbPresent && soc < 95);
-  batteryCache.isCharged  = (usbPresent && soc >= 95);
-  raw = soc;
-#endif
-
-  batteryCache.level = constrain(raw, 0, 100);
-
-  // If anything changed and the settings screen is showing, repaint immediately
-  if (currentScreen == 1) {
-    if (batteryCache.level    != prevLevel    ||
-        batteryCache.isCharging != prevCharging ||
-        batteryCache.isCharged  != prevCharged) {
-      paintSettingsScreen();
-    }
+// USB present: VBUS where the PMIC reports it (AXP192), else the charge flag.
+// "Charging" vs "charged" by level: the AXP192 charge current reads 0 well
+// before the battery is full, so the level is the more reliable signal.
+void read() {
+  power::Battery b;
+  b.level = constrain((int)M5.Power.getBatteryLevel(), 0, 100);
+  const int  vbus = M5.Power.getVBUSVoltage();
+  const bool usb  = vbus > 0 ? vbus > 3000 : M5.Power.isCharging();
+  b.charging = usb && b.level < 95;
+  b.charged  = usb && b.level >= 95;
+  if (b.level != batt.level || b.charging != batt.charging || b.charged != batt.charged) {
+    batt = b;
+    changeCount++;
   }
 }
+
+}  // namespace
+
+namespace power {
+
+void begin() {
+  btStop();
+  loop(false);
+  read();
+}
+
+void loop(bool busy) {
+  if (busy != fast) {
+    setCpuFrequencyMhz(busy ? 160 : 80);
+    fast = busy;
+  }
+  const uint32_t now = millis();
+  if (now - readAt >= BATTERY_READ_MS) {
+    readAt = now;
+    read();
+  }
+}
+
+const Battery &battery() { return batt; }
+uint32_t       changes() { return changeCount; }
+
+}  // namespace power

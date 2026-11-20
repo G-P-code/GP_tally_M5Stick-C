@@ -4,16 +4,38 @@ All notable changes to GP Tally M5StickC are documented here.
 
 ---
 
-## [4.5.4] — in development
+## [4.6] — 2026-11-20
+
+### Changed — rewrite
+- **One code base for all boards on M5Unified** — display, buttons, IMU and battery go through M5Unified / M5GFX; the board is detected at run time. Gone: the M5StickC / M5StickCPlus / M5StickCPlus2 libraries, MultiButton, `Free_Fonts.h`, the hardware abstraction layer and every per-board `#ifdef`.
+- **Modules instead of ~60 global variables** — `board`, `settings`, `net`, `tally`, `leds`, `ui`, `power`, each with its own state and a small interface; `main.cpp` only ties them together.
+- **Screen drawn from state** — any change marks the frame dirty and the whole frame is drawn off-screen and pushed at once (no flicker). Gone: `prevType = "__invalidated__"`, origin-screen bookkeeping for each animation, `showSettings()` / `showDeviceInfo()`.
+- **Tally as an enum** (program / preview / aux / other) with the bus colour, not string comparisons; bus list, device list and active buses kept as small tables.
+- **Settings** in one place (`settings`), saved only when changed; the TallyArbiter device id is now saved whenever the server assigns one.
+- **Logging** with `LOGI` / `LOGE` / `LOGD` (`-DVERBOSE` for debug).
+- **No connection attempt with the default server** `0.0.0.0` — the log says to set it in the portal.
+- **Web config always on the network** — the portal (TallyArbiter server, info, firmware update) is reachable at the device IP whenever it is on the network, not only while the Settings screen is open.
+- **M5 long press on the Settings screen opens the setup AP without erasing WiFi** (on any screen it closes the AP when open). The M5 5 s hold that erased the WiFi settings is gone — erase from the portal (Info → Erase WiFi config) or by holding G33 for 3 s.
+- **M5StickC-Plus2 support removed** — no device to test on; to be added back when there is one.
+- **Web portal login on the network** — at the device IP the portal asks for `admin` / `tally` (`WEB_USER` / `WEB_PASSWORD` in `config.h`), checked before a firmware upload is accepted. The setup AP needs no login.
+- **One firmware for M5StickC and M5StickC-Plus** — the board is detected at run time, so a single `m5stickc` environment (and `m5stickc-ota`) replaces the per-board ones.
+
+### Added — release
+- **Release images** — every build writes `release/GP_tally_M5StickC_v<ver>.bin` (update: web portal / OTA) and `..._full.bin` (new device, flash at 0x0; erases settings).
+- **GitHub Actions** — builds each push and pull request; a `v<ver>` tag matching `FW_VERSION` creates a draft release with both images.
+- Removed: `LAST_MSG` (messages are logged), `TALLY_EXTRA_OUTPUT` (LEDs always built in, switched with the M5 double click).
 
 ### Changed
-- **Build system migrated from Arduino IDE to PlatformIO** — `platformio.ini` with environments `m5stickc`, `m5stickc-plus`, `m5stickc-plus2` and matching `-ota` variants. ESP32 core, partition scheme and all library versions are pinned, so builds are reproducible without manual library installation.
+- **Build system migrated from Arduino IDE to PlatformIO** — `platformio.ini` (one `m5stickc` environment and its `-ota` variant, see above). ESP32 core, partition scheme and all library versions are pinned, so builds are reproducible without manual library installation.
 - **ESP32 platform** — pioarduino `55.03.313` (Arduino-ESP32 core 3.3.13).
-- **Board definitions** — `boards/` contains definitions for StickC, StickC-Plus and StickC-Plus2 (not shipped by pioarduino).
+- **Board definition** — `boards/m5stack-stickc.json` (not shipped by pioarduino).
 - **Source layout** — sketch tabs (`*.ino`) converted to regular C++ (`src/*.cpp`). Shared globals and prototypes moved to `include/globals.h`, board detection to `include/board.h`. No functional changes.
 - **Docs** — README and REQUIREMENTS updated for PlatformIO. Library versions in docs now match the versions actually used (WebSockets 2.7.2, not 2.3.4).
 
 ### Added
+- **Device name fits the screen** — the tally name is drawn in the largest FreeSans (24/18/12/9 pt) that fits the width, centred, on all boards. On the M5StickC it was the tiny built-in font.
+- **Readable name on any tally colour** — on an active tally the name is a lighter shade of the tally colour on dark backgrounds and a darker shade on light ones (`TALLY_NAME_CONTRAST`, 55 %), and the device id only a faint shade (`TALLY_ID_CONTRAST`, 25 %), instead of always black. With no tally the device id is grey, close to the name (was nearly invisible).
+- **M5StickC Settings screen** — 16 px font instead of 6×8 px; the TallyArbiter server is on one `TA:` line, and a line too wide for 160 px (usually that one) drops to the 8 px font instead of wrapping, so the battery and version line stays on screen.
 - **Close the setup AP from the device** — M5 button long press (or **Exit** in the portal). Closed without a network, the AP stays closed until the network has been back once.
 
 ### Changed
@@ -22,7 +44,7 @@ All notable changes to GP Tally M5StickC are documented here.
 ### Fixed
 - **Boot no longer hangs in the setup portal** — with the saved Wi-Fi unavailable, `autoConnect()` without a portal timeout waited in the AP for ever and never retried the network. Boot is now non-blocking: the station keeps retrying, the setup AP opens after 20 s and closes by itself when the network answers.
 - **Wi-Fi events never fired** — `WiFiEvent()` compared core 3.x `ARDUINO_EVENT_*` ids with ESP-IDF `IP_EVENT_*` / `WIFI_EVENT_*` values (different numbers), so a lost network was never noticed. Station state now comes from the interface's event bits; drops are logged with their reason.
-- **Wi-Fi reconnect** — a drop the core's auto-reconnect does not recover within 5 s is retried every 10 s. Joins the strongest AP when several share the SSID.
+- **Wi-Fi reconnect** — left to the core's auto-reconnect; the station is only started again when opening the setup AP switched it off, so the AP still closes by itself when the network returns. Joins the strongest AP when several share the SSID.
 - **Stale tally on a dead link** — the Socket.IO ping was answered but its absence never checked, so a silently dropped link (Wi-Fi gone, server unplugged) kept the last tally colour on screen. No packet for pingInterval + pingTimeout now drops the connection and clears the tally.
 - **TallyArbiter reconnect** — `socket.begin()` was called again on every retry on top of the library's own 500 ms reconnect, so the backoff never applied. The library now reconnects alone, with its interval doubling up to 30 s while the server is away (each attempt can block the loop up to 5 s).
 - **G33 setup portal no longer blocks** — the tally kept running only after the 120 s portal closed; it is now non-blocking.

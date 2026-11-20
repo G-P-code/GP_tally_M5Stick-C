@@ -3,3 +3,5 @@
 !.vscode/extensions.json
 .DS_Store
 compile_commands.json
+.cache/
+release/
