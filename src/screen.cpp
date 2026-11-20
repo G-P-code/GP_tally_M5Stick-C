@@ -169,17 +169,11 @@ void evaluateMode() {
       m5_drawDeviceName(DeviceName, DARKGREY, TFT_BLACK);
     }
 
-    // LED muted indicator — small notice at bottom when LEDs are disabled
+    // LED muted indicator — small notice centred on the top edge
 #if TALLY_EXTRA_OUTPUT
     if (!ledsEnabled) {
-      int indW = m5_displayWidth();
-      int indH = 14;
-      int indY = m5_displayHeight() - indH - 2;
       uint16_t bgc = (actualType != "" && validColor) ? m5_color565(r, g, b) : (uint16_t)TFT_BLACK;
-      m5_fillRect(0, indY, indW, indH, bgc);
-      configureDisplayToCheckReset();
-      m5_setTextColor(DARKGREY, bgc);
-      m5_println("  LED OFF");
+      m5_drawTopNotice("LED OFF", DARKGREY, bgc);
     }
 #endif
 

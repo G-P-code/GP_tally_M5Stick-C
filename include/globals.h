@@ -237,5 +237,6 @@ int  m5_displayHeight();
 int  lcdBrightness();
 int  lcdBrightnessPlus2();
 void m5_drawDeviceName(const String &name, uint16_t fg, uint16_t bg);
+void m5_drawTopNotice(const String &text, uint16_t fg, uint16_t bg);
 void configureDisplayToCheckReset();
 void ledCheckScreen(uint32_t bgColor, uint16_t textColor, String label, String pinNum, int stepNum, int totalSteps);

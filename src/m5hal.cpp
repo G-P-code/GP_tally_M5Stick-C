@@ -269,6 +269,29 @@ void m5_drawDeviceName(const String &name, uint16_t fg, uint16_t bg) {
 #endif
 }
 
+// Small notice centred on the top edge of the screen (e.g. "LED OFF").
+void m5_drawTopNotice(const String &text, uint16_t fg, uint16_t bg) {
+#if defined(STICK_C_PLUS2)
+  auto &d = StickCP2.Display;
+  d.setFont(FSS9);
+  d.setTextColor(fg, bg);
+  d.setTextDatum(TC_DATUM);
+  d.drawString(text.c_str(), d.width() / 2, 2);
+  d.setTextDatum(TL_DATUM);
+#else
+  #if defined(STICK_C_PLUS)
+  M5.Lcd.setFreeFont(FSS9);
+  #else
+  M5.Lcd.setTextFont(1);
+  M5.Lcd.setTextSize(1);
+  #endif
+  M5.Lcd.setTextColor(fg, bg);
+  M5.Lcd.setTextDatum(TC_DATUM);
+  M5.Lcd.drawString(text, M5.Lcd.width() / 2, 2);
+  M5.Lcd.setTextDatum(TL_DATUM);
+#endif
+}
+
 // ----------------------------------------------------------------------------
 // LED check screen helper
 // ----------------------------------------------------------------------------
