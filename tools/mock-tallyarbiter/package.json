@@ -1,0 +1,8 @@
+{
+  "name": "mock-tallyarbiter",
+  "private": true,
+  "description": "Minimal TallyArbiter 3.3 listener-side server for testing the tally firmware",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "socket.io": "4.8.0" }
+}

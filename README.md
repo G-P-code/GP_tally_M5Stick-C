@@ -162,12 +162,27 @@ pio run -e m5stickc-ota -t upload --upload-port 192.168.1.50
 
 ---
 
+## Testing without TallyArbiter
+
+`tools/mock-tallyarbiter` stands in for the listener side of TallyArbiter 3.3 (Node.js):
+
+```sh
+cd tools/mock-tallyarbiter
+npm install
+node server.js <device-id>     # the tally's current device id, port 4455
+```
+
+Point the tally at the computer's IP (portal **Setup**), then type `pv 1`, `pgm 1`, `off 1`, `reassign 2`, `flash` or `list`.
+
+---
+
 ## Project Structure
 
 ```
 platformio.ini      — build environments, ESP32 core and library versions
 boards/             — StickC board definition (same for StickC-Plus)
 scripts/            — release_bins.py: versioned images to release/
+tools/              — mock-tallyarbiter: test server for the listener protocol
 .github/workflows/  — build on push / PR, draft release on a v* tag
 include/
 ├── config.h        — pins, colours, timing, network constants, NVS keys

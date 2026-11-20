@@ -4,6 +4,17 @@ All notable changes to GP Tally M5StickC are documented here.
 
 ---
 
+## [4.7] — in development
+
+### Fixed
+- **Reassign with TallyArbiter 3.3** — since TallyArbiter 3.3.0 the server accepts `listener_reassign_object` only from a logged-in producer, so after a reassign from the TallyArbiter page the listener showed the new device name but stayed in the old device's room: no tally, and the server still listed it on the old device until a restart. The listener now reconnects with the new device id instead (about 1 s, the screen stays on the tally), which works with every TallyArbiter version.
+- **Server errors logged** — TallyArbiter `error` messages (e.g. an unknown device id) appear in the serial log.
+
+### Added
+- **`tools/mock-tallyarbiter`** — a small stand-in for the listener side of TallyArbiter 3.3 (same socket.io, refuses unauthenticated reassign) to test the firmware without a server: tally, reassign, flash from the keyboard.
+
+---
+
 ## [4.6] — 2026-11-20
 
 ### Changed — rewrite
