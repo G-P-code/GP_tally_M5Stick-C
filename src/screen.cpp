@@ -70,15 +70,21 @@ void paintSettingsScreen() {
   String batStr = batteryCache.isCharging ? "Charging..." : (batteryCache.isCharged ? "Charged." : (String(batteryCache.level) + "%"));
   M5.Lcd.print(batStr);
 #if defined(STICK_C)
-  String verStr = "v" + version;           // flush with the right edge on 160 px
+  // Flush with the right edge. drawString, not println: println wraps a line
+  // whose last glyph ends exactly at the edge, and the last digit vanished.
+  String verStr = "v" + version;
+  M5.Lcd.setTextColor(DARKGREY, BLACK);
+  M5.Lcd.setTextDatum(TR_DATUM);
+  M5.Lcd.drawString(verStr, M5.Lcd.width(), M5.Lcd.getCursorY());
+  M5.Lcd.setTextDatum(TL_DATUM);
 #else
   String verStr = "v" + version + "   ";
-#endif
   int verX = M5.Lcd.width() - M5.Lcd.textWidth(verStr);
   int verY = M5.Lcd.getCursorY();
   M5.Lcd.setTextColor(DARKGREY, BLACK);
   M5.Lcd.setCursor(verX, verY);
   M5.Lcd.println(verStr);
+#endif
   M5.Lcd.setTextColor(WHITE, BLACK);
 #endif
 }
@@ -183,7 +189,7 @@ void evaluateMode() {
     if (!brightnessOsdActive) {
       configureDisplayToCheckReset();
       // Active tally: a faint shade of the tally colour.
-      // No signal: very dark grey on black — present but unobtrusive.
+      // No signal: grey on black, close to the (DARKGREY) name.
       // suffix is always exactly 6 hex chars after setup() padding fix
       String idStr = listenerDeviceName.substring(listenerDeviceName.length() - 6) + "   ";
       uint16_t idFg, idBg;
@@ -191,7 +197,7 @@ void evaluateMode() {
         idFg = textColorOn(r, g, b, TALLY_ID_CONTRAST);
         idBg = m5_color565(r, g, b);
       } else {
-        idFg = 0x2104;   // very dark grey
+        idFg = IDLE_ID_COLOR;   // grey, a little darker than the idle name
         idBg = TFT_BLACK;
       }
 #if defined(STICK_C_PLUS2)

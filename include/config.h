@@ -15,6 +15,7 @@
 // (light background) shade of that colour, this % of the way to white/black.
 #define TALLY_NAME_CONTRAST  55   // device name
 #define TALLY_ID_CONTRAST    25   // device id in the corner — barely there
+#define IDLE_ID_COLOR    0x52AA   // device id with no tally: grey, a bit darker than the DARKGREY name
 
 // ============================================================================
 // Brightness
