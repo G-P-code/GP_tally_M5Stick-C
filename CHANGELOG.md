@@ -14,6 +14,9 @@ All notable changes to GP Tally M5StickC are documented here.
 - **Docs** — README and REQUIREMENTS updated for PlatformIO. Library versions in docs now match the versions actually used (WebSockets 2.7.2, not 2.3.4).
 
 ### Added
+- **Device name fits the screen** — the tally name is drawn in the largest FreeSans (24/18/12/9 pt) that fits the width, centred, on all boards. On the M5StickC it was the tiny built-in font.
+- **Readable name on any tally colour** — name and device id are white on dark backgrounds and black on light ones (perceived luminance), instead of always black.
+- **M5StickC Settings screen** — 16 px font instead of 6×8 px; the TallyArbiter server is on one `TA:` line.
 - **Close the setup AP from the device** — M5 button long press (or **Exit** in the portal). Closed without a network, the AP stays closed until the network has been back once.
 
 ### Changed

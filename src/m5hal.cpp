@@ -47,6 +47,7 @@ void m5_configInitialScreen() {
   M5.Lcd.setFreeFont(FSS9);
 #else
   M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextFont(1);
   M5.Lcd.setTextSize(1);
 #endif
 #if defined(STICK_C_PLUS2)
@@ -64,7 +65,9 @@ void m5_configSettingsScreen() {
   M5.Lcd.setCursor(0, 20);
   M5.Lcd.setFreeFont(FSS9);
 #else
+  // 160x80: built-in 16 px font, 5 lines
   M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextFont(2);
   M5.Lcd.setTextSize(1);
 #endif
 }
@@ -205,20 +208,6 @@ uint8_t m5_BtnA_pressedFor(uint32_t ms) {
 // Cursor / font presets for each screen context
 // ----------------------------------------------------------------------------
 
-void configureDisplayToEvaluateMode() {
-#if defined(STICK_C_PLUS2)
-  StickCP2.Display.setCursor(4, 50);
-  StickCP2.Display.setFont(FSS24);
-#elif defined(STICK_C_PLUS)
-  M5.Lcd.setCursor(4, 82);
-  M5.Lcd.setFreeFont(FSS24);
-#else
-  M5.Lcd.setCursor(4, 30);
-  M5.Lcd.setTextSize(2);
-#endif
-}
-
-
 void configureDisplayToCheckReset() {
 #if defined(STICK_C_PLUS2)
   StickCP2.Display.setCursor(0, 40);
@@ -228,7 +217,38 @@ void configureDisplayToCheckReset() {
   M5.Lcd.setFreeFont(FSS9);
 #else
   M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextFont(1);   // the tally name may have left a free font set
   M5.Lcd.setTextSize(1);
+#endif
+}
+
+// Device name on the tally screen: the largest FreeSans (24/18/12/9 pt) that
+// fits the width, centred a little above the middle (the device id sits in the
+// bottom-right corner). FSS9 stays if nothing fits.
+void m5_drawDeviceName(const String &name, uint16_t fg, uint16_t bg) {
+#if defined(STICK_C_PLUS2)
+  auto &d = StickCP2.Display;
+  static const lgfx::IFont *const fonts[] = { FSS24, FSS18, FSS12, FSS9 };
+  const int maxW = d.width() - 8;
+  for (const lgfx::IFont *f : fonts) {
+    d.setFont(f);
+    if (d.textWidth(name.c_str()) <= maxW) break;
+  }
+  d.setTextColor(fg, bg);
+  d.setTextDatum(MC_DATUM);
+  d.drawString(name.c_str(), d.width() / 2, d.height() / 2 - 4);
+  d.setTextDatum(TL_DATUM);
+#else
+  static const GFXfont *const fonts[] = { FSS24, FSS18, FSS12, FSS9 };
+  const int maxW = M5.Lcd.width() - 8;
+  for (const GFXfont *f : fonts) {
+    M5.Lcd.setFreeFont(f);
+    if (M5.Lcd.textWidth(name) <= maxW) break;
+  }
+  M5.Lcd.setTextColor(fg, bg);
+  M5.Lcd.setTextDatum(MC_DATUM);
+  M5.Lcd.drawString(name, M5.Lcd.width() / 2, M5.Lcd.height() / 2 - 4);
+  M5.Lcd.setTextDatum(TL_DATUM);
 #endif
 }
 

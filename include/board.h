@@ -55,5 +55,7 @@
   // M5GFX (used by Plus2) includes FreeSans fonts via M5StickCPlus2.h.
   // Define the same aliases used elsewhere in the code.
   #define FSS9  &fonts::FreeSans9pt7b
+  #define FSS12 &fonts::FreeSans12pt7b
+  #define FSS18 &fonts::FreeSans18pt7b
   #define FSS24 &fonts::FreeSans24pt7b
 #endif
