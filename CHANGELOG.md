@@ -17,6 +17,7 @@ All notable changes to GP Tally M5StickC are documented here.
 - **Web config always on the network** — the portal (TallyArbiter server, info, firmware update) is reachable at the device IP whenever it is on the network, not only while the Settings screen is open.
 - **M5 long press on the Settings screen opens the setup AP without erasing WiFi** (on any screen it closes the AP when open). The M5 5 s hold that erased the WiFi settings is gone — erase from the portal (Info → Erase WiFi config) or by holding G33 for 3 s.
 - **M5StickC-Plus2 support removed** — no device to test on; to be added back when there is one.
+- **Web portal login on the network** — at the device IP the portal asks for `admin` / `tallyarbiter` (`WEB_USER` / `WEB_PASSWORD` in `config.h`), checked before a firmware upload is accepted. The setup AP needs no login.
 - **One firmware for M5StickC and M5StickC-Plus** — the board is detected at run time, so a single `m5stickc` environment (and `m5stickc-ota`) replaces the per-board ones.
 
 ### Added — release

@@ -43,7 +43,7 @@ Shown automatically on disconnect. Displays:
 - Battery level
 - Firmware version
 
-Whenever the device is on the network, the configuration web portal is available at its IP address (shown on the Settings screen): change the Tally Arbiter server, see device info or upload new firmware.
+Whenever the device is on the network, the configuration web portal is available at its IP address (shown on the Settings screen): change the Tally Arbiter server, see device info or upload new firmware. It asks for a login: user **admin**, password **tallyarbiter**. The setup AP (192.168.6.1) needs no login.
 
 ### External LEDs (optional)
 
@@ -104,7 +104,7 @@ Parādās automātiski, zaudējot savienojumu. Rāda:
 - Akumulatora uzlādes līmeni
 - Programmatūras versiju
 
-Kamēr ierīce ir tīklā, konfigurācijas web portāls vienmēr pieejams tās IP adresē (redzama Iestatījumu ekrānā): var mainīt Tally Arbiter serveri, skatīt ierīces informāciju vai augšupielādēt jaunu firmware.
+Kamēr ierīce ir tīklā, konfigurācijas web portāls vienmēr pieejams tās IP adresē (redzama Iestatījumu ekrānā): var mainīt Tally Arbiter serveri, skatīt ierīces informāciju vai augšupielādēt jaunu firmware. Tas prasa pieteikšanos: lietotājs **admin**, parole **tallyarbiter**. Setup AP (192.168.6.1) pieteikšanos neprasa.
 
 ### Ārējie LED (pēc izvēles)
 

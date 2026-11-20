@@ -146,7 +146,7 @@ LED brightness tracks the display brightness setting. LEDs can be toggled on/off
 
 ### Via web portal
 
-1. Navigate to the device IP address (shown on the Settings screen) from any browser on the same network.
+1. Navigate to the device IP address (shown on the Settings screen) from any browser on the same network and log in: user `admin`, password `tallyarbiter`.
 2. Go to **Update** in the portal menu and upload `GP_tally_M5StickC_v<ver>.bin` (not the `_full` file).
 
 ### Via PlatformIO

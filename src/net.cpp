@@ -16,6 +16,10 @@
 //    states are read from the library.
 //  * /paramsave: a reload or GET is ignored, a blank field keeps its value.
 //    A real save restarts the device.
+//  * Login: a request that comes over the network (not via the setup AP)
+//    needs WEB_USER / WEB_PASSWORD. Checked by AuthGate, the first handler,
+//    before the request reaches WiFiManager — also before a firmware upload
+//    is written.
 //  * /erase replaced: core 3.x refuses to erase before the STA has started.
 // ============================================================================
 
@@ -57,6 +61,38 @@ void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
     discCount  = discCount + 1;
   }
 }
+
+// First handler on the portal's server. A request from the setup AP passes
+// by (canHandle false). A request from the network is taken here: without a
+// valid login the upload is dropped and the browser asked to log in; with one,
+// everything goes to the handler that would have served it.
+class AuthGate : public RequestHandler {
+public:
+  bool canHandle(WebServer &s, HTTPMethod m, const String &uri) override {
+    target_ = nullptr;
+    if (s.client().localIP() == apAddress) return false;
+    for (RequestHandler *h = next(); h; h = h->next())
+      if (h->canHandle(s, m, uri)) { target_ = h; break; }
+    return true;
+  }
+  bool canUpload(WebServer &s, const String &uri) override {
+    return target_ && authorized(s) && target_->canUpload(s, uri);
+  }
+  void upload(WebServer &s, const String &uri, HTTPUpload &u) override {
+    target_->upload(s, uri, u);
+  }
+  bool handle(WebServer &s, HTTPMethod m, const String &uri) override {
+    if (!authorized(s)) {
+      s.requestAuthentication(BASIC_AUTH, "GP Tally");
+      return true;
+    }
+    return target_ && target_->process(s, m, uri);   // false: WebServer's not-found
+  }
+
+private:
+  static bool authorized(WebServer &s) { return s.authenticate(WEB_USER, WEB_PASSWORD); }
+  RequestHandler *target_ = nullptr;
+};
 
 void refreshForm() {
   const Settings &s = settings::get();
@@ -191,7 +227,10 @@ void begin(const String &hostname) {
   wm.setAPStaticIPConfig(apAddress, apAddress, IPAddress(255, 255, 255, 0));
   wm.setConnectTimeout(15);
   wm.setConfigPortalBlocking(false);
-  wm.setWebServerCallback([]() { wm.server->on("/erase", handleErase); });   // before WM's own
+  wm.setWebServerCallback([]() {                       // before WM's own handlers
+    wm.server->addHandler(new AuthGate());
+    wm.server->on("/erase", handleErase);
+  });
 
   setupOta();
 
